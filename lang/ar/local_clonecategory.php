@@ -1,0 +1,26 @@
+<?php
+$string['pluginname'] = 'استنساخ الفئة';
+$string['clonecategory'] = 'استنساخ الفئة';
+$string['sourcecategory'] = 'الفئة المصدر';
+$string['targetcategory'] = 'الفئة الهدف (الأب)';
+$string['targetcategory_help'] = 'اختر الفئة التي سيتم وضع الفئة المستنسخة بداخلها. اختر "أعلى" لوضعها في المستوى الجذري.';
+$string['clone_button'] = 'بدء الاستنساخ';
+$string['cloningsuccess'] = 'تمت جدولة عملية استنساخ الفئة في الخلفية. ستكتمل العملية قريباً.';
+$string['privacy:metadata'] = 'إضافة استنساخ الفئات لا تقوم بتخزين أي بيانات شخصية.';
+$string['task:clone_category_task'] = 'مهمة استنساخ الفئة';
+$string['clone_page_title'] = 'استنساخ التصنيفات(المساقات) والمقررات';
+$string['categorysuffix'] = 'لاحقة اسم الفئة';
+$string['categorysuffix_help'] = 'النص الذي سيتم إضافته إلى اسم الفئة المستنسخة. اتركه فارغاً للنسخ بنفس الاسم.';
+$string['coursesuffix'] = 'لاحقة اسم المقرر';
+$string['coursesuffix_help'] = 'النص الذي سيتم إضافته إلى اسم المقرر المستنسخ. اتركه فارغاً للنسخ بنفس الاسم.';
+$string['tasks_started'] = 'تم إطلاق أمر تشغيل المهام في الخلفية بنجاح.';
+$string['scheduled_tasks'] = 'المهام المجدولة';
+$string['force_run_tasks'] = 'فرض التنفيذ الفوري للمهام';
+$string['queued_tasks'] = 'مهام الاستنساخ قيد الانتظار';
+$string['no_queued_tasks'] = 'لا توجد مهام استنساخ قيد الانتظار حالياً.';
+$string['completed_tasks'] = 'مهام الاستنساخ السابقة';
+$string['no_completed_tasks'] = 'لا توجد مهام استنساخ سابقة.';
+$string['status'] = 'الحالة';
+$string['time_started'] = 'وقت البدء';
+$string['time_completed'] = 'وقت الانتهاء';
+$string['id'] = 'المعرف';
