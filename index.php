@@ -37,8 +37,9 @@ if ($action === 'run_tasks' && confirm_sesskey()) {
     
     $tasks_run = 0;
     while ($task = \core\task\manager::get_next_adhoc_task(time())) {
-        if ($task->get_classname() === '\\local_clonecategory\\task\\clone_category_task') {
-            echo "Executing adhoc task: " . $task->get_classname() . " (ID: " . $task->get_id() . ")...\n";
+        $taskclass = get_class($task);
+        if ($taskclass === 'local_clonecategory\\task\\clone_category_task' || $taskclass === '\\local_clonecategory\\task\\clone_category_task') {
+            echo "Executing adhoc task: " . $taskclass . " (ID: " . $task->get_id() . ")...\n";
             try {
                 $task->execute();
                 \core\task\manager::adhoc_task_complete($task);
@@ -52,7 +53,7 @@ if ($action === 'run_tasks' && confirm_sesskey()) {
             // This task is not ours, put it back in the queue
             // We can't elegantly unlock it in older Moodles, so we just let the lock expire
             // Or we just break to avoid running other plugins' tasks.
-            echo "Found a task belonging to another plugin (" . $task->get_classname() . "). Stopping execution to avoid interference.\n";
+            echo "Found a task belonging to another plugin (" . $taskclass . "). Stopping execution to avoid interference.\n";
             break;
         }
     }
