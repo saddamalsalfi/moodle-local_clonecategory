@@ -77,25 +77,20 @@ if ($action === 'pause' && $jobid && confirm_sesskey()) {
     echo get_string('task_starting', 'local_clonecategory');
 
     $tasks_run = 0;
+    $targetclass = \local_clonecategory\task\clone_category_task::class;
     try {
-        while ($task = \core\task\manager::get_next_adhoc_task(time())) {
-            $taskclass = get_class($task);
-            if ($taskclass === 'local_clonecategory\\task\\clone_category_task' || $taskclass === '\\local_clonecategory\\task\\clone_category_task') {
-                $a = (object)['class' => $taskclass, 'id' => $task->get_id()];
-                echo get_string('task_executing', 'local_clonecategory', $a);
-                try {
-                    $task->execute();
-                    \core\task\manager::adhoc_task_complete($task);
-                    echo get_string('task_completed_success', 'local_clonecategory');
-                } catch (\Throwable $e) {
-                    \core\task\manager::adhoc_task_failed($task);
-                    echo get_string('task_failed', 'local_clonecategory', $e->getMessage());
-                }
-                $tasks_run++;
-            } else {
-                echo get_string('task_other_plugin', 'local_clonecategory', $taskclass);
-                break;
+        while ($task = \core\task\manager::get_next_adhoc_task(time(), true, $targetclass)) {
+            $a = (object)['class' => get_class($task), 'id' => $task->get_id()];
+            echo get_string('task_executing', 'local_clonecategory', $a);
+            try {
+                $task->execute();
+                \core\task\manager::adhoc_task_complete($task);
+                echo get_string('task_completed_success', 'local_clonecategory');
+            } catch (\Throwable $e) {
+                \core\task\manager::adhoc_task_failed($task);
+                echo get_string('task_failed', 'local_clonecategory', $e->getMessage());
             }
+            $tasks_run++;
         }
     } finally {
         error_reporting($olderrorlevel);
@@ -226,16 +221,19 @@ if ($tab === 'clone') {
             echo html_writer::link($resumeurl, get_string('btn_resume', 'local_clonecategory'), ['class' => 'btn btn-success mr-2']);
         }
 
-        // Rollback button
-        $rollbackurl = new moodle_url('/local/clonecategory/index.php', ['tab' => 'tasks', 'action' => 'rollback', 'jobid' => $activejob->id, 'sesskey' => sesskey()]);
-        echo html_writer::link(
-            $rollbackurl,
-            get_string('btn_rollback', 'local_clonecategory'),
-            [
-                'class' => 'btn btn-danger',
-                'onclick' => "return confirm('" . addslashes_js(get_string('rollback_confirm', 'local_clonecategory')) . "');"
-            ]
-        );
+        // Rollback button (allowed only for the latest job within 24h)
+        $latestjobid = (int)$DB->get_field_sql("SELECT MAX(id) FROM {local_clonecategory_jobs}");
+        if (manager::can_rollback_job($activejob, $latestjobid)) {
+            $rollbackurl = new moodle_url('/local/clonecategory/index.php', ['tab' => 'tasks', 'action' => 'rollback', 'jobid' => $activejob->id, 'sesskey' => sesskey()]);
+            echo html_writer::link(
+                $rollbackurl,
+                get_string('btn_rollback', 'local_clonecategory'),
+                [
+                    'class' => 'btn btn-danger',
+                    'onclick' => "return confirm('" . addslashes_js(get_string('rollback_confirm', 'local_clonecategory')) . "');"
+                ]
+            );
+        }
         echo html_writer::end_div();
 
         echo html_writer::end_div();
@@ -251,6 +249,7 @@ if ($tab === 'clone') {
     // All Jobs History Table
     echo html_writer::tag('h3', get_string('all_jobs_history', 'local_clonecategory'));
 
+    $latestjobid = (int)$DB->get_field_sql("SELECT MAX(id) FROM {local_clonecategory_jobs}");
     $jobs = $DB->get_records('local_clonecategory_jobs', null, 'id DESC', '*', 0, 50);
     if (empty($jobs)) {
         echo html_writer::tag('p', get_string('no_jobs_found', 'local_clonecategory'));
@@ -287,7 +286,7 @@ if ($tab === 'clone') {
                 $actions[] = html_writer::link($resumeurl, get_string('btn_resume', 'local_clonecategory'), ['class' => 'btn btn-sm btn-success mr-1']);
             }
 
-            if (in_array($j->status, [manager::STATUS_COMPLETED, manager::STATUS_FAILED, manager::STATUS_PAUSED, manager::STATUS_RUNNING])) {
+            if (manager::can_rollback_job($j, $latestjobid)) {
                 $rollbackurl = new moodle_url('/local/clonecategory/index.php', ['tab' => 'tasks', 'action' => 'rollback', 'jobid' => $j->id, 'sesskey' => sesskey()]);
                 $actions[] = html_writer::link(
                     $rollbackurl,

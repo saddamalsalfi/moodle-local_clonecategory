@@ -103,3 +103,5 @@ $string['job_paused_success'] = 'Cloning job paused successfully.';
 $string['job_resumed_success'] = 'Cloning job resumed.';
 $string['job_deleted_success'] = 'Job record deleted.';
 $string['error_lock_failed'] = 'Could not obtain lock for operation. Please try again.';
+$string['error_rollback_not_latest'] = 'Sorry, rollback is only allowed for the most recent cloning job.';
+$string['error_rollback_expired'] = 'Sorry, the 24-hour window for rolling back this job has expired.';

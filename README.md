@@ -13,7 +13,7 @@ A powerful, native Moodle local plugin that enables site administrators and cour
 * **📁 Deep Recursive Cloning**: Duplicates entire category hierarchies, subcategories, and courses while automatically preserving layout and resetting user data/enrollments.
 * **🛡️ Concurrency Control & Active Job Locking**: Prevents overlapping or simultaneous cloning tasks to eliminate database conflicts and server resource exhaustion.
 * **⏸️ ▶️ Pause & Resume Operations**: Pause an active or queued cloning job at any time and resume it from the exact item where it stopped without duplicating already created content.
-* **🔄 🗑️ Complete Rollback & Undo System**: Total one-click undo mechanism that cleanly removes all created categories, subcategories, and courses from Moodle if a job needs to be cancelled.
+* **🔄 🗑️ Safe Rollback & Undo System**: One-click undo mechanism for the latest cloning job (available within a 24-hour expiration window) to safely remove created categories and courses without affecting older operations.
 * **📊 Real-time Progress & Statistics**: Dynamic progress bar (0–100%), real-time item counter (categories and courses copied), and live step description.
 * **⚡ Background Processing**: Leverages Moodle’s native ad-hoc task queue (`\core\task\manager`) to prevent PHP HTTP timeouts on large categories.
 * **🚀 Native Force Run Engine**: Execute scheduled ad-hoc tasks directly from the web interface safely—no CLI `exec()` or server shell access required.
@@ -25,7 +25,7 @@ A powerful, native Moodle local plugin that enables site administrators and cour
 ## 📋 Requirements
 
 * **Moodle**: 4.0 or later (Tested up to Moodle 5.2+).
-* **PHP**: 8.1, 8.2, or 8.3.
+* **PHP**: 8.1, 8.2, 8.3, or 8.4 (Fully compatible with PHP 8.4 engine standards).
 
 ---
 

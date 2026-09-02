@@ -103,3 +103,5 @@ $string['job_paused_success'] = 'تم إيقاف عملية الاستنساخ �
 $string['job_resumed_success'] = 'تم استئناف عملية الاستنساخ.';
 $string['job_deleted_success'] = 'تم حذف سجل العملية.';
 $string['error_lock_failed'] = 'تعذر الحصول على قفل القفل للعملية. يرجى المحاولة مرة أخرى.';
+$string['error_rollback_not_latest'] = 'عذراً، لا يمكن التراجع إلا عن آخر عملية استنساخ تم إجراؤها فقط.';
+$string['error_rollback_expired'] = 'عذراً، انقضت مهلة الـ 24 ساعة المتاحة للتراجع عن هذه العملية.';

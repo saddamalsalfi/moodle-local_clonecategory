@@ -171,6 +171,30 @@ class manager {
     }
 
     /**
+     * Check if a job can be rolled back (only allowed for the latest job within 24h window).
+     *
+     * @param \stdClass $job
+     * @param int $latestjobid
+     * @return bool
+     */
+    public static function can_rollback_job(\stdClass $job, int $latestjobid): bool {
+        if ((int)$job->id !== $latestjobid) {
+            return false;
+        }
+
+        if (!in_array($job->status, [self::STATUS_COMPLETED, self::STATUS_FAILED, self::STATUS_PAUSED, self::STATUS_RUNNING])) {
+            return false;
+        }
+
+        $time = $job->timemodified ?: $job->timecreated;
+        if ((time() - $time) > 86400) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
      * Rollback (Undo) a cloning job completely, deleting all created categories & courses.
      *
      * @param int $jobid
@@ -184,6 +208,16 @@ class manager {
         $job = $DB->get_record('local_clonecategory_jobs', ['id' => $jobid]);
         if (!$job) {
             return false;
+        }
+
+        $latestjobid = (int)$DB->get_field_sql("SELECT MAX(id) FROM {local_clonecategory_jobs}");
+        if ((int)$jobid !== $latestjobid) {
+            throw new \moodle_exception('error_rollback_not_latest', 'local_clonecategory');
+        }
+
+        $time = $job->timemodified ?: $job->timecreated;
+        if ((time() - $time) > 86400) {
+            throw new \moodle_exception('error_rollback_expired', 'local_clonecategory');
         }
 
         // Lock to avoid race conditions.

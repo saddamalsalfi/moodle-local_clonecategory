@@ -77,7 +77,7 @@ class clone_form extends \moodleform {
         $mform->addHelpButton('coursesuffix', 'coursesuffix', 'local_clonecategory');
 
         if ($hasactive) {
-            $mform->freeze();
+            $mform->freeze(['sourcecategory', 'targetcategory', 'categorysuffix', 'coursesuffix']);
         } else {
             $this->add_action_buttons(true, get_string('clone_button', 'local_clonecategory'));
         }
