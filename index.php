@@ -23,6 +23,13 @@
  */
 
 require_once(__DIR__ . '/../../config.php');
+
+// Suppress PHP 8.4 PEAR static call deprecation error during script shutdown.
+$GLOBALS['_PEAR_destructor_object_list'] = [];
+register_shutdown_function(function() {
+    $GLOBALS['_PEAR_destructor_object_list'] = [];
+});
+
 require_once($CFG->libdir . '/adminlib.php');
 
 use local_clonecategory\manager;

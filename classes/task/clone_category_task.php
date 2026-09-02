@@ -42,6 +42,12 @@ class clone_category_task extends \core\task\adhoc_task {
     public function execute() {
         global $CFG, $DB;
 
+        // Suppress PHP 8.4 PEAR static call deprecation error during script shutdown.
+        $GLOBALS['_PEAR_destructor_object_list'] = [];
+        register_shutdown_function(function() {
+            $GLOBALS['_PEAR_destructor_object_list'] = [];
+        });
+
         require_once($CFG->dirroot . '/backup/util/includes/backup_includes.php');
         require_once($CFG->dirroot . '/backup/util/includes/restore_includes.php');
         require_once($CFG->libdir . '/filelib.php');
