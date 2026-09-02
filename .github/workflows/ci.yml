@@ -1,0 +1,50 @@
+name: moodle-plugin-ci
+
+on:
+  push:
+    branches:
+      - '*'
+  pull_request:
+    branches:
+      - '*'
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        php: ['8.1', '8.2', '8.3']
+        moodle-branch: ['MOODLE_402_STABLE', 'MOODLE_403_STABLE', 'MOODLE_404_STABLE', 'main']
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: mbstring, pgsql, mysqli, gd, xml, zip, intl, soap
+          coverage: none
+
+      - name: Setup moodle-plugin-ci
+        run: |
+          composer global require moodlehq/moodle-plugin-ci:^4
+          echo "$HOME/.composer/vendor/bin" >> $GITHUB_PATH
+
+      - name: Install moodle-plugin-ci
+        run: moodle-plugin-ci install --moodle-branch=${{ matrix.moodle-branch }}
+
+      - name: Run phplint
+        run: moodle-plugin-ci phplint
+
+      - name: Run phpcs
+        run: moodle-plugin-ci phpcs
+
+      - name: Run validate
+        run: moodle-plugin-ci validate
+
+      - name: Run savepoints
+        run: moodle-plugin-ci savepoints
+
+      - name: Run phpunit
+        run: moodle-plugin-ci phpunit

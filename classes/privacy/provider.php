@@ -15,18 +15,31 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Version details for local_clonecategory.
+ * Privacy Subsystem implementation for local_clonecategory.
  *
  * @package    local_clonecategory
  * @copyright  2026 Saddam Al-Salfi
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+namespace local_clonecategory\privacy;
+
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->version   = 2026080902;
-$plugin->requires  = 2022041900; // Moodle 4.0
-$plugin->component = 'local_clonecategory';
-$plugin->release   = '1.0.0';
-$plugin->maturity  = MATURITY_STABLE;
-$plugin->supported = [400, 502]; // Compatible with Moodle 4.0 up to 5.2
+/**
+ * Privacy Subsystem for local_clonecategory implementing null_provider interface.
+ *
+ * @copyright  2026 Saddam Al-Salfi
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+class provider implements \core_privacy\local\metadata\null_provider {
+
+    /**
+     * Get the language string identifier with the component's language file to explain why this plugin stores no data.
+     *
+     * @return  string
+     */
+    public static function get_reason(): string {
+        return 'privacy:metadata';
+    }
+}
