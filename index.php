@@ -130,6 +130,12 @@ if ($action === 'pause' && $jobid && confirm_sesskey()) {
 
 $mform = new \local_clonecategory\form\clone_form($url, ['categoryid' => $categoryid]);
 
+// Clear PEAR destructors array and suppress deprecations during PHP shutdown (fixes PHP 8.4 PEAR static call issue).
+register_shutdown_function(function() {
+    $GLOBALS['_PEAR_destructor_object_list'] = [];
+    @error_reporting(0);
+});
+
 if ($tab === 'clone' && $mform->is_cancelled()) {
     redirect(new moodle_url('/course/management.php'));
 } else if ($tab === 'clone' && $data = $mform->get_data()) {
