@@ -24,6 +24,8 @@
 
 namespace local_clonecategory\form;
 
+use local_clonecategory\manager;
+
 defined('MOODLE_INTERNAL') || die();
 
 require_once($CFG->libdir . '/formslib.php');
@@ -43,6 +45,14 @@ class clone_form extends \moodleform {
         $mform = $this->_form;
         $customdata = $this->_customdata;
         $defaultcategory = $customdata['categoryid'] ?? 0;
+
+        $hasactive = manager::has_active_job();
+        if ($hasactive) {
+            $mform->addElement('html', \html_writer::div(
+                get_string('active_job_warning', 'local_clonecategory'),
+                'alert alert-warning font-weight-bold mb-3'
+            ));
+        }
 
         $categories = \core_course_category::make_categories_list();
 
@@ -66,6 +76,10 @@ class clone_form extends \moodleform {
         $mform->setDefault('coursesuffix', get_string('default_suffix', 'local_clonecategory'));
         $mform->addHelpButton('coursesuffix', 'coursesuffix', 'local_clonecategory');
 
-        $this->add_action_buttons(true, get_string('clone_button', 'local_clonecategory'));
+        if ($hasactive) {
+            $mform->freeze();
+        } else {
+            $this->add_action_buttons(true, get_string('clone_button', 'local_clonecategory'));
+        }
     }
 }

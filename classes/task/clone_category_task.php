@@ -24,6 +24,8 @@
 
 namespace local_clonecategory\task;
 
+use local_clonecategory\manager;
+
 defined('MOODLE_INTERNAL') || die();
 
 /**
@@ -38,87 +40,177 @@ class clone_category_task extends \core\task\adhoc_task {
      * Run category cloning task.
      */
     public function execute() {
-        global $CFG;
+        global $CFG, $DB;
 
         require_once($CFG->dirroot . '/backup/util/includes/backup_includes.php');
         require_once($CFG->dirroot . '/backup/util/includes/restore_includes.php');
         require_once($CFG->libdir . '/filelib.php');
 
         $data = $this->get_custom_data();
-        $source_id = $data->source_category_id;
-        $target_parent_id = $data->target_parent_id;
-        $userid = $data->userid;
-        $category_suffix = isset($data->category_suffix) ? $data->category_suffix : get_string('default_suffix', 'local_clonecategory');
-        $course_suffix = isset($data->course_suffix) ? $data->course_suffix : get_string('default_suffix', 'local_clonecategory');
+        $jobid = $data->jobid ?? 0;
 
-        mtrace("Starting clone category task from source ID {$source_id} to parent {$target_parent_id}...");
+        if (!$jobid) {
+            mtrace("No job ID provided for clone category task.");
+            return;
+        }
 
-        $this->clone_category($source_id, $target_parent_id, $userid, $category_suffix, $course_suffix, true);
+        $job = $DB->get_record('local_clonecategory_jobs', ['id' => $jobid]);
+        if (!$job) {
+            mtrace("Job #{$jobid} not found.");
+            return;
+        }
 
-        mtrace("Clone category task completed successfully.");
+        if ($job->status === manager::STATUS_PAUSED || $job->status === manager::STATUS_ROLLED_BACK) {
+            mtrace("Job #{$jobid} status is '{$job->status}'. Aborting execution.");
+            return;
+        }
+
+        // Set status to running.
+        $job->status = manager::STATUS_RUNNING;
+        $job->currentstep = get_string('job_running', 'local_clonecategory');
+        $job->timemodified = time();
+        $DB->update_record('local_clonecategory_jobs', $job);
+
+        mtrace("Starting clone category task for Job #{$jobid} (Source ID: {$job->sourcecategoryid}, Target Parent: {$job->targetparentid})...");
+
+        try {
+            $this->clone_category($job, $job->sourcecategoryid, $job->targetparentid, true);
+
+            // Re-fetch job to check final status.
+            $job = $DB->get_record('local_clonecategory_jobs', ['id' => $jobid]);
+            if ($job && $job->status === manager::STATUS_RUNNING) {
+                $job->status = manager::STATUS_COMPLETED;
+                $job->progress = 100;
+                $job->currentstep = get_string('job_completed_success', 'local_clonecategory');
+                $job->timemodified = time();
+                $DB->update_record('local_clonecategory_jobs', $job);
+                mtrace("Job #{$jobid} completed successfully.");
+            }
+
+        } catch (\Throwable $e) {
+            $job = $DB->get_record('local_clonecategory_jobs', ['id' => $jobid]);
+            if ($job && $job->status !== manager::STATUS_PAUSED) {
+                $job->status = manager::STATUS_FAILED;
+                $job->currentstep = get_string('job_failed_error', 'local_clonecategory', $e->getMessage());
+                $job->timemodified = time();
+                $DB->update_record('local_clonecategory_jobs', $job);
+            }
+            mtrace("Error executing Job #{$jobid}: " . $e->getMessage());
+            throw $e;
+        }
     }
 
     /**
      * Recursively clone category.
      *
-     * @param int $source_cat_id
-     * @param int $target_parent_id
-     * @param int $userid
-     * @param string $category_suffix
-     * @param string $course_suffix
-     * @param bool $is_root
+     * @param \stdClass $job
+     * @param int $sourcecatid
+     * @param int $targetparentid
+     * @param bool $isroot
      */
-    private function clone_category($source_cat_id, $target_parent_id, $userid, $category_suffix, $course_suffix, $is_root = true) {
-        $sourcecat = \core_course_category::get($source_cat_id);
+    private function clone_category(\stdClass $job, int $sourcecatid, int $targetparentid, bool $isroot = true) {
+        global $DB;
 
-        mtrace("Cloning category: {$sourcecat->name}");
-
-        $catdata = new \stdClass();
-        $catdata->name = $sourcecat->name;
-        if ($is_root && $category_suffix !== '') {
-            $catdata->name .= $category_suffix;
+        // Check if job was paused by user before doing heavy work.
+        if ($this->is_job_paused($job->id)) {
+            mtrace("Job #{$job->id} paused by user. Interrupting category clone.");
+            return;
         }
-        $catdata->parent = $target_parent_id;
-        $catdata->description = $sourcecat->description;
-        $catdata->descriptionformat = $sourcecat->descriptionformat;
-        $catdata->idnumber = ''; // Prevent idnumber collisions
 
-        $newcat = \core_course_category::create($catdata);
+        $sourcecat = \core_course_category::get($sourcecatid);
 
-        mtrace("Created new category: {$newcat->name} (ID: {$newcat->id})");
+        // Check if category was already cloned in previous attempt (for pause/resume).
+        $existingitem = $DB->get_record('local_clonecategory_items', [
+            'jobid' => $job->id,
+            'itemtype' => 'category',
+            'sourceid' => $sourcecatid,
+        ]);
 
+        if ($existingitem && $DB->record_exists('course_categories', ['id' => $existingitem->itemid])) {
+            $newcatid = $existingitem->itemid;
+            mtrace("Skipping already cloned category: {$sourcecat->name} (New Cat ID: {$newcatid})");
+        } else {
+            mtrace("Cloning category: {$sourcecat->name}");
+
+            $catdata = new \stdClass();
+            $catdata->name = $sourcecat->name;
+            if ($isroot && !empty($job->categorysuffix)) {
+                $catdata->name .= $job->categorysuffix;
+            }
+            $catdata->parent = $targetparentid;
+            $catdata->description = $sourcecat->description;
+            $catdata->descriptionformat = $sourcecat->descriptionformat;
+            $catdata->idnumber = ''; // Prevent idnumber collisions
+
+            $newcat = \core_course_category::create($catdata);
+            $newcatid = $newcat->id;
+
+            // Log item in db.
+            $item = new \stdClass();
+            $item->jobid       = $job->id;
+            $item->itemtype    = 'category';
+            $item->itemid      = $newcatid;
+            $item->sourceid    = $sourcecatid;
+            $item->status      = 'completed';
+            $item->timecreated = time();
+            $DB->insert_record('local_clonecategory_items', $item);
+
+            // Update job counts & progress.
+            $this->increment_progress($job->id, 'category', $sourcecat->name);
+        }
+
+        // Clone courses in this category.
         $courses = $sourcecat->get_courses(['limit' => 0]);
         foreach ($courses as $course) {
-            $this->clone_course($course, $newcat->id, $userid, $course_suffix);
+            if ($this->is_job_paused($job->id)) {
+                mtrace("Job #{$job->id} paused by user. Interrupting course clones.");
+                return;
+            }
+            $this->clone_course($job, $course, $newcatid);
         }
 
-        // Recursively clone subcategories
+        // Recursively clone subcategories.
         $subcats = $sourcecat->get_children();
         foreach ($subcats as $subcat) {
-            $this->clone_category($subcat->id, $newcat->id, $userid, $category_suffix, $course_suffix, false);
+            if ($this->is_job_paused($job->id)) {
+                mtrace("Job #{$job->id} paused by user. Interrupting subcategory clones.");
+                return;
+            }
+            $this->clone_category($job, $subcat->id, $newcatid, false);
         }
     }
 
     /**
      * Clone single course.
      *
+     * @param \stdClass $job
      * @param object $course
      * @param int $targetcategoryid
-     * @param int $userid
-     * @param string $course_suffix
      */
-    private function clone_course($course, $targetcategoryid, $userid, $course_suffix) {
-        global $CFG;
+    private function clone_course(\stdClass $job, $course, int $targetcategoryid) {
+        global $CFG, $DB;
+
+        // Check if course was already cloned.
+        $existingitem = $DB->get_record('local_clonecategory_items', [
+            'jobid' => $job->id,
+            'itemtype' => 'course',
+            'sourceid' => $course->id,
+        ]);
+
+        if ($existingitem && $DB->record_exists('course', ['id' => $existingitem->itemid])) {
+            mtrace("  Skipping already cloned course: {$course->fullname}");
+            return;
+        }
 
         mtrace("  Cloning course: {$course->fullname}");
 
-        // Ensure time and memory limits are expanded
+        // Raise execution limits.
         \core_php_time_limit::raise();
         raise_memory_limit(MEMORY_EXTRA);
 
-        // Backup
+        // Backup course.
         $bc = new \backup_controller(\backup::TYPE_1COURSE, $course->id, \backup::FORMAT_MOODLE,
-            \backup::INTERACTIVE_NO, \backup::MODE_IMPORT, $userid);
+            \backup::INTERACTIVE_NO, \backup::MODE_IMPORT, $job->userid);
 
         $plan = $bc->get_plan();
         if ($plan->setting_exists('users') && $plan->get_setting('users')->get_value()) {
@@ -138,15 +230,14 @@ class clone_category_task extends \core\task\adhoc_task {
         $bc->execute_plan();
         $bc->destroy();
 
-        mtrace("    Backup created with ID: {$backupid}");
-
-        // Restore
-        $newfullname = $course->fullname . $course_suffix;
+        // Restore course.
+        $coursesuffix = $job->coursesuffix ?? '';
+        $newfullname = $course->fullname . $coursesuffix;
         $newshortname = $course->shortname . '_' . time();
         $newcourseid = \restore_dbops::create_new_course($newfullname, $newshortname, $targetcategoryid);
 
         $rc = new \restore_controller($backupid, $newcourseid,
-            \backup::INTERACTIVE_NO, \backup::MODE_SAMESITE, $userid,
+            \backup::INTERACTIVE_NO, \backup::MODE_SAMESITE, $job->userid,
             \backup::TARGET_NEW_COURSE);
 
         $rcplan = $rc->get_plan();
@@ -163,7 +254,6 @@ class clone_category_task extends \core\task\adhoc_task {
             $rcplan->get_setting('logs')->set_value(0);
         }
 
-        // Ensure course names are correct in the restore plan as well
         if ($rcplan->setting_exists('course_shortname')) {
             $rcplan->get_setting('course_shortname')->set_value($newshortname);
         }
@@ -173,15 +263,68 @@ class clone_category_task extends \core\task\adhoc_task {
 
         $rc->execute_precheck();
         $rc->execute_plan();
-
         $rc->destroy();
 
-        mtrace("    Course restored as ID: {$newcourseid}");
-
-        // Delete backup temp files
+        // Delete backup temp files.
         $tempdir = $CFG->tempdir . '/backup/' . $backupid;
         if (is_dir($tempdir)) {
             fulldelete($tempdir);
         }
+
+        // Record item.
+        $item = new \stdClass();
+        $item->jobid       = $job->id;
+        $item->itemtype    = 'course';
+        $item->itemid      = $newcourseid;
+        $item->sourceid    = $course->id;
+        $item->status      = 'completed';
+        $item->timecreated = time();
+        $DB->insert_record('local_clonecategory_items', $item);
+
+        $this->increment_progress($job->id, 'course', $course->fullname);
+    }
+
+    /**
+     * Check if job has been paused in database.
+     *
+     * @param int $jobid
+     * @return bool
+     */
+    private function is_job_paused(int $jobid): bool {
+        global $DB;
+        $status = $DB->get_field('local_clonecategory_jobs', 'status', ['id' => $jobid]);
+        return ($status === manager::STATUS_PAUSED || $status === manager::STATUS_ROLLING_BACK);
+    }
+
+    /**
+     * Increment job progress and current step description.
+     *
+     * @param int $jobid
+     * @param string $type
+     * @param string $itemname
+     */
+    private function increment_progress(int $jobid, string $type, string $itemname) {
+        global $DB;
+        $job = $DB->get_record('local_clonecategory_jobs', ['id' => $jobid]);
+        if (!$job) {
+            return;
+        }
+
+        if ($type === 'category') {
+            $job->categoriescount++;
+        } else if ($type === 'course') {
+            $job->coursescount++;
+        }
+
+        $totalitems = ($job->totalcategories + $job->totalcourses);
+        $doneitems = ($job->categoriescount + $job->coursescount);
+        $job->progress = ($totalitems > 0) ? (int)round(($doneitems / $totalitems) * 100) : 0;
+        if ($job->progress > 99 && $doneitems < $totalitems) {
+            $job->progress = 99;
+        }
+
+        $job->currentstep = get_string('job_cloned_item', 'local_clonecategory', (object)['type' => $type, 'name' => $itemname]);
+        $job->timemodified = time();
+        $DB->update_record('local_clonecategory_jobs', $job);
     }
 }

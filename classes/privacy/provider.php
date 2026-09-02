@@ -24,22 +24,37 @@
 
 namespace local_clonecategory\privacy;
 
+use core_privacy\local\metadata\collection;
+use core_privacy\local\metadata\provider as metadata_provider;
+
 defined('MOODLE_INTERNAL') || die();
 
 /**
- * Privacy Subsystem for local_clonecategory implementing null_provider interface.
+ * Privacy Subsystem for local_clonecategory.
  *
  * @copyright  2026 Saddam Al-Salfi
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class provider implements \core_privacy\local\metadata\null_provider {
+class provider implements metadata_provider {
 
     /**
-     * Get the language string identifier with the component's language file to explain why this plugin stores no data.
+     * Return metadata for the plugin.
      *
-     * @return  string
+     * @param collection $collection
+     * @return collection
      */
-    public static function get_reason(): string {
-        return 'privacy:metadata';
+    public static function get_metadata(collection $collection): collection {
+        $collection->add_database_table(
+            'local_clonecategory_jobs',
+            [
+                'userid' => 'privacy:metadata:local_clonecategory_jobs:userid',
+                'sourcecategoryid' => 'privacy:metadata:local_clonecategory_jobs:sourcecategoryid',
+                'targetparentid' => 'privacy:metadata:local_clonecategory_jobs:targetparentid',
+                'timecreated' => 'privacy:metadata:local_clonecategory_jobs:timecreated',
+            ],
+            'privacy:metadata:local_clonecategory_jobs'
+        );
+
+        return $collection;
     }
 }
