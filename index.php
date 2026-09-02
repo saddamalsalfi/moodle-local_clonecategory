@@ -63,28 +63,35 @@ if ($action === 'pause' && $jobid && confirm_sesskey()) {
     \core_php_time_limit::raise();
     \core\session\manager::write_close();
 
+    $olderrorlevel = error_reporting();
+    error_reporting($olderrorlevel & ~E_DEPRECATED & ~E_STRICT);
+
     ob_start();
     echo get_string('task_starting', 'local_clonecategory');
 
     $tasks_run = 0;
-    while ($task = \core\task\manager::get_next_adhoc_task(time())) {
-        $taskclass = get_class($task);
-        if ($taskclass === 'local_clonecategory\\task\\clone_category_task' || $taskclass === '\\local_clonecategory\\task\\clone_category_task') {
-            $a = (object)['class' => $taskclass, 'id' => $task->get_id()];
-            echo get_string('task_executing', 'local_clonecategory', $a);
-            try {
-                $task->execute();
-                \core\task\manager::adhoc_task_complete($task);
-                echo get_string('task_completed_success', 'local_clonecategory');
-            } catch (\Throwable $e) {
-                \core\task\manager::adhoc_task_failed($task);
-                echo get_string('task_failed', 'local_clonecategory', $e->getMessage());
+    try {
+        while ($task = \core\task\manager::get_next_adhoc_task(time())) {
+            $taskclass = get_class($task);
+            if ($taskclass === 'local_clonecategory\\task\\clone_category_task' || $taskclass === '\\local_clonecategory\\task\\clone_category_task') {
+                $a = (object)['class' => $taskclass, 'id' => $task->get_id()];
+                echo get_string('task_executing', 'local_clonecategory', $a);
+                try {
+                    $task->execute();
+                    \core\task\manager::adhoc_task_complete($task);
+                    echo get_string('task_completed_success', 'local_clonecategory');
+                } catch (\Throwable $e) {
+                    \core\task\manager::adhoc_task_failed($task);
+                    echo get_string('task_failed', 'local_clonecategory', $e->getMessage());
+                }
+                $tasks_run++;
+            } else {
+                echo get_string('task_other_plugin', 'local_clonecategory', $taskclass);
+                break;
             }
-            $tasks_run++;
-        } else {
-            echo get_string('task_other_plugin', 'local_clonecategory', $taskclass);
-            break;
         }
+    } finally {
+        error_reporting($olderrorlevel);
     }
 
     if ($tasks_run === 0) {

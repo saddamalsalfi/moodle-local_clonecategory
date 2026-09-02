@@ -208,80 +208,89 @@ class clone_category_task extends \core\task\adhoc_task {
         \core_php_time_limit::raise();
         raise_memory_limit(MEMORY_EXTRA);
 
-        // Backup course.
-        $bc = new \backup_controller(\backup::TYPE_1COURSE, $course->id, \backup::FORMAT_MOODLE,
-            \backup::INTERACTIVE_NO, \backup::MODE_IMPORT, $job->userid);
+        // Suppress legacy PHP 8 deprecation warnings from core PEAR/Archive_Tar during backup/restore.
+        $olderrorlevel = error_reporting();
+        error_reporting($olderrorlevel & ~E_DEPRECATED & ~E_STRICT);
 
-        $plan = $bc->get_plan();
-        if ($plan->setting_exists('users') && $plan->get_setting('users')->get_value()) {
-            $plan->get_setting('users')->set_value(0);
-        }
-        if ($plan->setting_exists('role_assignments') && $plan->get_setting('role_assignments')->get_value()) {
-            $plan->get_setting('role_assignments')->set_value(0);
-        }
-        if ($plan->setting_exists('enrolments') && $plan->get_setting('enrolments')->get_value()) {
-            $plan->get_setting('enrolments')->set_value(0);
-        }
-        if ($plan->setting_exists('logs') && $plan->get_setting('logs')->get_value()) {
-            $plan->get_setting('logs')->set_value(0);
-        }
+        try {
+            // Backup course.
+            $bc = new \backup_controller(\backup::TYPE_1COURSE, $course->id, \backup::FORMAT_MOODLE,
+                \backup::INTERACTIVE_NO, \backup::MODE_IMPORT, $job->userid);
 
-        $backupid = $bc->get_backupid();
-        $bc->execute_plan();
-        $bc->destroy();
+            $plan = $bc->get_plan();
+            if ($plan->setting_exists('users') && $plan->get_setting('users')->get_value()) {
+                $plan->get_setting('users')->set_value(0);
+            }
+            if ($plan->setting_exists('role_assignments') && $plan->get_setting('role_assignments')->get_value()) {
+                $plan->get_setting('role_assignments')->set_value(0);
+            }
+            if ($plan->setting_exists('enrolments') && $plan->get_setting('enrolments')->get_value()) {
+                $plan->get_setting('enrolments')->set_value(0);
+            }
+            if ($plan->setting_exists('logs') && $plan->get_setting('logs')->get_value()) {
+                $plan->get_setting('logs')->set_value(0);
+            }
 
-        // Restore course.
-        $coursesuffix = $job->coursesuffix ?? '';
-        $newfullname = $course->fullname . $coursesuffix;
-        $newshortname = $course->shortname . '_' . time();
-        $newcourseid = \restore_dbops::create_new_course($newfullname, $newshortname, $targetcategoryid);
+            $backupid = $bc->get_backupid();
+            $bc->execute_plan();
+            $bc->destroy();
 
-        $rc = new \restore_controller($backupid, $newcourseid,
-            \backup::INTERACTIVE_NO, \backup::MODE_SAMESITE, $job->userid,
-            \backup::TARGET_NEW_COURSE);
+            // Restore course.
+            $coursesuffix = $job->coursesuffix ?? '';
+            $newfullname = $course->fullname . $coursesuffix;
+            $newshortname = $course->shortname . '_' . time();
+            $newcourseid = \restore_dbops::create_new_course($newfullname, $newshortname, $targetcategoryid);
 
-        $rcplan = $rc->get_plan();
-        if ($rcplan->setting_exists('users') && $rcplan->get_setting('users')->get_value()) {
-            $rcplan->get_setting('users')->set_value(0);
+            $rc = new \restore_controller($backupid, $newcourseid,
+                \backup::INTERACTIVE_NO, \backup::MODE_SAMESITE, $job->userid,
+                \backup::TARGET_NEW_COURSE);
+
+            $rcplan = $rc->get_plan();
+            if ($rcplan->setting_exists('users') && $rcplan->get_setting('users')->get_value()) {
+                $rcplan->get_setting('users')->set_value(0);
+            }
+            if ($rcplan->setting_exists('role_assignments') && $rcplan->get_setting('role_assignments')->get_value()) {
+                $rcplan->get_setting('role_assignments')->set_value(0);
+            }
+            if ($rcplan->setting_exists('enrolments') && $rcplan->get_setting('enrolments')->get_value()) {
+                $rcplan->get_setting('enrolments')->set_value(0);
+            }
+            if ($rcplan->setting_exists('logs') && $rcplan->get_setting('logs')->get_value()) {
+                $rcplan->get_setting('logs')->set_value(0);
+            }
+
+            if ($rcplan->setting_exists('course_shortname')) {
+                $rcplan->get_setting('course_shortname')->set_value($newshortname);
+            }
+            if ($rcplan->setting_exists('course_fullname')) {
+                $rcplan->get_setting('course_fullname')->set_value($newfullname);
+            }
+
+            $rc->execute_precheck();
+            $rc->execute_plan();
+            $rc->destroy();
+
+            // Delete backup temp files.
+            $tempdir = $CFG->tempdir . '/backup/' . $backupid;
+            if (is_dir($tempdir)) {
+                fulldelete($tempdir);
+            }
+
+            // Record item.
+            $item = new \stdClass();
+            $item->jobid       = $job->id;
+            $item->itemtype    = 'course';
+            $item->itemid      = $newcourseid;
+            $item->sourceid    = $course->id;
+            $item->status      = 'completed';
+            $item->timecreated = time();
+            $DB->insert_record('local_clonecategory_items', $item);
+
+            $this->increment_progress($job->id, 'course', $course->fullname);
+
+        } finally {
+            error_reporting($olderrorlevel);
         }
-        if ($rcplan->setting_exists('role_assignments') && $rcplan->get_setting('role_assignments')->get_value()) {
-            $rcplan->get_setting('role_assignments')->set_value(0);
-        }
-        if ($rcplan->setting_exists('enrolments') && $rcplan->get_setting('enrolments')->get_value()) {
-            $rcplan->get_setting('enrolments')->set_value(0);
-        }
-        if ($rcplan->setting_exists('logs') && $rcplan->get_setting('logs')->get_value()) {
-            $rcplan->get_setting('logs')->set_value(0);
-        }
-
-        if ($rcplan->setting_exists('course_shortname')) {
-            $rcplan->get_setting('course_shortname')->set_value($newshortname);
-        }
-        if ($rcplan->setting_exists('course_fullname')) {
-            $rcplan->get_setting('course_fullname')->set_value($newfullname);
-        }
-
-        $rc->execute_precheck();
-        $rc->execute_plan();
-        $rc->destroy();
-
-        // Delete backup temp files.
-        $tempdir = $CFG->tempdir . '/backup/' . $backupid;
-        if (is_dir($tempdir)) {
-            fulldelete($tempdir);
-        }
-
-        // Record item.
-        $item = new \stdClass();
-        $item->jobid       = $job->id;
-        $item->itemtype    = 'course';
-        $item->itemid      = $newcourseid;
-        $item->sourceid    = $course->id;
-        $item->status      = 'completed';
-        $item->timecreated = time();
-        $DB->insert_record('local_clonecategory_items', $item);
-
-        $this->increment_progress($job->id, 'course', $course->fullname);
     }
 
     /**
