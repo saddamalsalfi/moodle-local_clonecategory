@@ -26,7 +26,7 @@
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
       </KEYS>
       <INDEXES>
-        <INDEX NAME="status_idx" TYPE="normal" FIELDS="status"/>
+        <INDEX NAME="status_idx" UNIQUE="false" FIELDS="status"/>
       </INDEXES>
     </TABLE>
     <TABLE NAME="local_clonecategory_items" COMMENT="Tracks items created during a cloning job">

@@ -82,5 +82,28 @@ function xmldb_local_clonecategory_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026090200, 'local', 'clonecategory');
     }
 
+    if ($oldversion < 2026090202) {
+        $table = new xmldb_table('local_clonecategory_jobs');
+        $index = new xmldb_index('status_idx', XMLDB_INDEX_NOTUNIQUE, ['status']);
+
+        if ($dbman->table_exists($table)) {
+            $indexes = $DB->get_indexes('local_clonecategory_jobs');
+            $existingindexname = $dbman->find_index_name($table, $index);
+
+            // If an index on status exists but was created as unique, drop and recreate it as non-unique.
+            if ($existingindexname && !empty($indexes[$existingindexname]['unique'])) {
+                $oldindex = new xmldb_index($existingindexname, XMLDB_INDEX_UNIQUE, ['status']);
+                $dbman->drop_index($table, $oldindex);
+                $existingindexname = false;
+            }
+
+            if (!$existingindexname) {
+                $dbman->add_index($table, $index);
+            }
+        }
+
+        upgrade_plugin_savepoint(true, 2026090202, 'local', 'clonecategory');
+    }
+
     return true;
 }
