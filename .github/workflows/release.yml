@@ -46,7 +46,7 @@ jobs:
         shell: bash
         run: |
           [[ "$TAG_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
-          php -r 'define("MOODLE_INTERNAL", true); define("MATURITY_STABLE", 200); require "version.php"; if ($plugin->component !== "local_clonecategory" || $plugin->release !== substr(getenv("TAG_NAME"), 1) || $plugin->maturity !== MATURITY_STABLE) { fwrite(STDERR, "Stable version metadata does not match the release tag.\n"); exit(1); }'
+          php -r '$plugin = new stdClass(); define("MOODLE_INTERNAL", true); define("MATURITY_STABLE", 200); require "version.php"; if ($plugin->component !== "local_clonecategory" || $plugin->release !== substr(getenv("TAG_NAME"), 1) || $plugin->maturity !== MATURITY_STABLE) { fwrite(STDERR, "Stable version metadata does not match the release tag.\n"); exit(1); }'
 
       - name: Build Moodle installation archives
         shell: bash
