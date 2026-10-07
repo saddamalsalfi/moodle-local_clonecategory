@@ -27,8 +27,11 @@ namespace local_clonecategory;
 /**
  * Clone scope integration tests.
  *
- * @copyright 2026 Saddam Al-Salfi
- * @license http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * @package    local_clonecategory
+ * @copyright  2026 Saddam Al-Salfi
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * @covers     \local_clonecategory\manager
+ * @covers     \local_clonecategory\task\clone_category_task
  */
 final class clone_modes_test extends \advanced_testcase {
     /**

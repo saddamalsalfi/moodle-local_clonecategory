@@ -147,7 +147,7 @@ class manager {
     /**
      * Check whether the current user may inspect or control a job.
      *
-     * @param object $job Job record
+     * @param \stdClass $job Job record
      * @return bool Whether the current user may inspect/control the job
      */
     public static function can_manage_job(\stdClass $job): bool {
@@ -268,6 +268,7 @@ class manager {
     /**
      * Build searchable category options in hierarchy order without repeated ancestor names.
      *
+     * @param bool $source Whether building source options
      * @return array Category IDs mapped to depth-prefixed names
      */
     public static function get_category_options(bool $source = false): array {
@@ -458,7 +459,7 @@ class manager {
     /**
      * Check the rollback state, ownership and time window.
      *
-     * @param object $job Job
+     * @param \stdClass $job Job
      * @param int $latestjobid Latest visible job
      * @return bool
      */

@@ -32,8 +32,11 @@ use core_privacy\local\request\writer;
 
 /**
  * Privacy data is isolated by user and cannot disappear during an active restore.
- * @copyright 2026 Saddam Al-Salfi
- * @license http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ *
+ * @package    local_clonecategory
+ * @copyright  2026 Saddam Al-Salfi
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * @covers     \local_clonecategory\privacy\provider
  */
 final class privacy_provider_test extends \core_privacy\tests\provider_testcase {
     /**
