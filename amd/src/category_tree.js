@@ -16,7 +16,7 @@
 /**
  * Collapsible, searchable category selectors.
  * @module local_clonecategory/category_tree
- * @copyright 2026 Saddam Al-Salfi
+ * @copyright 2026 Saddam Al-Slfi
  * @license http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 /**

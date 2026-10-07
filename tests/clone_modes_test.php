@@ -18,7 +18,7 @@
  * Tests for clone scopes and safe destination selection.
  *
  * @package    local_clonecategory
- * @copyright  2026 Saddam Al-Salfi
+ * @copyright  2026 Saddam Al-Slfi
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -28,7 +28,7 @@ namespace local_clonecategory;
  * Clone scope integration tests.
  *
  * @package    local_clonecategory
- * @copyright  2026 Saddam Al-Salfi
+ * @copyright  2026 Saddam Al-Slfi
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  * @covers     \local_clonecategory\manager
  * @covers     \local_clonecategory\task\clone_category_task

@@ -64,4 +64,4 @@ Privacy support and automated tests provide evidence for applicable badges. Resp
 
 ## Licence
 
-GNU GPL v3 or later. Maintainer: Saddam Al-Salfi. Source: https://github.com/saddamalsalfi/moodle-local_clonecategory
+GNU GPL v3 or later. Maintainer: Saddam Al-Slfi. Source: https://github.com/saddamalsalfi/moodle-local_clonecategory

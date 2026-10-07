@@ -15,10 +15,10 @@
 
 /**
  * Category selector DOM behaviour regression tests.
- * @copyright 2026 Saddam Al-Salfi
+ * @copyright 2026 Saddam Al-Slfi
  * @license http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-// Copyright 2026 Saddam Al-Salfi. GNU GPL v3 or later.
+// Copyright 2026 Saddam Al-Slfi. GNU GPL v3 or later.
 // Isolated DOM-behaviour tests; layout still requires a Moodle browser test.
 const fs = require('fs');
 const vm = require('vm');

@@ -18,7 +18,7 @@
  * Privacy export, erasure and worker-safety integration tests.
  *
  * @package    local_clonecategory
- * @copyright  2026 Saddam Al-Salfi
+ * @copyright  2026 Saddam Al-Slfi
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -34,7 +34,7 @@ use core_privacy\local\request\writer;
  * Privacy data is isolated by user and cannot disappear during an active restore.
  *
  * @package    local_clonecategory
- * @copyright  2026 Saddam Al-Salfi
+ * @copyright  2026 Saddam Al-Slfi
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  * @covers     \local_clonecategory\privacy\provider
  */

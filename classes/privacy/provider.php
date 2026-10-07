@@ -18,7 +18,7 @@
  * Privacy Subsystem implementation for local_clonecategory.
  *
  * @package    local_clonecategory
- * @copyright  2026 Saddam Al-Salfi
+ * @copyright  2026 Saddam Al-Slfi
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -35,7 +35,7 @@ use local_clonecategory\manager;
 /**
  * Metadata, export and erasure of job audit data.
  * Moodle core remains responsible for the created course resources and its task logs.
- * @copyright 2026 Saddam Al-Salfi
+ * @copyright 2026 Saddam Al-Slfi
  * @license http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class provider implements

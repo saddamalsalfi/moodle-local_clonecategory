@@ -18,7 +18,7 @@
  * Adhoc task for cloning category and courses.
  *
  * @package    local_clonecategory
- * @copyright  2026 Saddam Al-Salfi
+ * @copyright  2026 Saddam Al-Slfi
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -29,7 +29,7 @@ use local_clonecategory\manager;
 /**
  * Class clone_category_task
  *
- * @copyright  2026 Saddam Al-Salfi
+ * @copyright  2026 Saddam Al-Slfi
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class clone_category_task extends \core\task\adhoc_task {

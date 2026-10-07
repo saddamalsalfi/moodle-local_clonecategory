@@ -18,7 +18,7 @@
  * Form definition for cloning category.
  *
  * @package    local_clonecategory
- * @copyright  2026 Saddam Al-Salfi
+ * @copyright  2026 Saddam Al-Slfi
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -33,7 +33,7 @@ require_once($CFG->libdir . '/formslib.php');
 /**
  * Category clone form.
  *
- * @copyright  2026 Saddam Al-Salfi
+ * @copyright  2026 Saddam Al-Slfi
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class clone_form extends \moodleform {
