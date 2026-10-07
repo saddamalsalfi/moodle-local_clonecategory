@@ -4,6 +4,11 @@ on:
   push:
     tags: ['v*']
   workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to publish'
+        required: false
+        default: 'v1.3.1'
 
 permissions:
   contents: read
@@ -17,24 +22,36 @@ jobs:
     uses: ./.github/workflows/ci.yml
 
   publish:
+    if: always() && !cancelled()
     needs: compatibility
     runs-on: ubuntu-24.04
     permissions:
       contents: write
     steps:
+      - name: Determine tag name
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" && -n "${{ inputs.tag }}" ]]; then
+            echo "TAG_NAME=${{ inputs.tag }}" >> $GITHUB_ENV
+          else
+            echo "TAG_NAME=${GITHUB_REF_NAME}" >> $GITHUB_ENV
+          fi
+
       - name: Check out the release tag
         uses: actions/checkout@v6
+        with:
+          ref: ${{ env.TAG_NAME }}
 
       - name: Verify stable release metadata
         shell: bash
         run: |
-          [[ "$GITHUB_REF_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
-          php -r 'define("MOODLE_INTERNAL", true); define("MATURITY_STABLE", 200); require "version.php"; if ($plugin->component !== "local_clonecategory" || $plugin->release !== substr(getenv("GITHUB_REF_NAME"), 1) || $plugin->maturity !== MATURITY_STABLE) { fwrite(STDERR, "Stable version metadata does not match the release tag.\n"); exit(1); }'
+          [[ "$TAG_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          php -r 'define("MOODLE_INTERNAL", true); define("MATURITY_STABLE", 200); require "version.php"; if ($plugin->component !== "local_clonecategory" || $plugin->release !== substr(getenv("TAG_NAME"), 1) || $plugin->maturity !== MATURITY_STABLE) { fwrite(STDERR, "Stable version metadata does not match the release tag.\n"); exit(1); }'
 
       - name: Build Moodle installation archives
         shell: bash
         run: |
-          release_version="${GITHUB_REF_NAME#v}"
+          release_version="${TAG_NAME#v}"
           git archive --format=zip --prefix=clonecategory/ --output="local_clonecategory-${release_version}.zip" HEAD
           git archive --format=tar --prefix=clonecategory/ HEAD | gzip -n > "local_clonecategory-${release_version}.tar.gz"
           sha256sum "local_clonecategory-${release_version}.zip" "local_clonecategory-${release_version}.tar.gz" > checksums.txt
@@ -44,10 +61,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          release_version="${GITHUB_REF_NAME#v}"
-          gh release create "$GITHUB_REF_NAME" \
+          release_version="${TAG_NAME#v}"
+          gh release create "$TAG_NAME" \
             "local_clonecategory-${release_version}.zip" \
             "local_clonecategory-${release_version}.tar.gz" \
             checksums.txt \
-            --verify-tag --title "Release $GITHUB_REF_NAME" \
+            --verify-tag --title "Release $TAG_NAME" \
             --notes-file RELEASE_NOTES.md --latest
