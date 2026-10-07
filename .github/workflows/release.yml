@@ -62,9 +62,18 @@ jobs:
         shell: bash
         run: |
           release_version="${TAG_NAME#v}"
-          gh release create "$TAG_NAME" \
-            "local_clonecategory-${release_version}.zip" \
-            "local_clonecategory-${release_version}.tar.gz" \
-            checksums.txt \
-            --verify-tag --title "Release $TAG_NAME" \
-            --notes-file RELEASE_NOTES.md --latest
+          assets=(
+            "local_clonecategory-${release_version}.zip"
+            "local_clonecategory-${release_version}.tar.gz"
+            checksums.txt
+          )
+          if gh release view "$TAG_NAME" >/dev/null 2>&1; then
+            gh release upload "$TAG_NAME" "${assets[@]}" --clobber
+            gh release edit "$TAG_NAME" \
+              --title "Release $TAG_NAME" \
+              --notes-file RELEASE_NOTES.md --latest
+          else
+            gh release create "$TAG_NAME" "${assets[@]}" \
+              --verify-tag --title "Release $TAG_NAME" \
+              --notes-file RELEASE_NOTES.md --latest
+          fi
