@@ -37,11 +37,11 @@ require_once($CFG->libdir . '/formslib.php');
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class clone_form extends \moodleform {
-
     /**
      * Form definition.
      */
     public function definition() {
+        global $PAGE;
         $mform = $this->_form;
         $customdata = $this->_customdata;
         $defaultcategory = $customdata['categoryid'] ?? 0;
@@ -54,18 +54,49 @@ class clone_form extends \moodleform {
             ));
         }
 
-        $categories = \core_course_category::make_categories_list();
+        $categories = manager::get_category_options(true);
 
-        $mform->addElement('select', 'sourcecategory', get_string('sourcecategory', 'local_clonecategory'), $categories);
+        $mform->addElement('header', 'scopeheader', get_string('scopeheading', 'local_clonecategory'));
+        $modes = [];
+        foreach ([manager::MODE_CATEGORIES, manager::MODE_SETTINGS, manager::MODE_FULL] as $mode) {
+            $modes[] = $mform->createElement(
+                'radio',
+                'clonemode',
+                '',
+                get_string('mode_' . $mode, 'local_clonecategory'),
+                $mode
+            );
+        }
+        $mform->addGroup($modes, 'clonemodegroup', get_string('clonemode', 'local_clonecategory'), '<br>', false);
+        $mform->setDefault('clonemode', manager::MODE_FULL);
+        $mform->addHelpButton('clonemodegroup', 'clonemode', 'local_clonecategory');
+        $mform->addElement('static', 'modenote', '', get_string('modenote', 'local_clonecategory'));
+        $mform->addElement('header', 'locationheader', get_string('locationheading', 'local_clonecategory'));
+        $mform->addElement(
+            'select',
+            'sourcecategory',
+            get_string('sourcecategory', 'local_clonecategory'),
+            ['' => get_string('choosecategory', 'local_clonecategory')] + $categories
+        );
         $mform->addRule('sourcecategory', null, 'required', null, 'client');
         if ($defaultcategory) {
             $mform->setDefault('sourcecategory', $defaultcategory);
         }
 
-        $targetcategories = [0 => get_string('top')] + $categories;
-        $mform->addElement('select', 'targetcategory', get_string('targetcategory', 'local_clonecategory'), $targetcategories);
+        $targetcategories = manager::get_category_options();
+        if (has_capability('moodle/category:manage', \context_system::instance())) {
+            $targetcategories = [0 => get_string('top')] + $targetcategories;
+        }
+        $mform->addElement(
+            'select',
+            'targetcategory',
+            get_string('targetcategory', 'local_clonecategory'),
+            $targetcategories
+        );
+        $mform->setDefault('targetcategory', 0);
         $mform->addHelpButton('targetcategory', 'targetcategory', 'local_clonecategory');
 
+        $mform->addElement('header', 'namingheader', get_string('namingheading', 'local_clonecategory'));
         $mform->addElement('text', 'categorysuffix', get_string('categorysuffix', 'local_clonecategory'));
         $mform->setType('categorysuffix', PARAM_TEXT);
         $mform->setDefault('categorysuffix', get_string('default_suffix', 'local_clonecategory'));
@@ -76,10 +107,61 @@ class clone_form extends \moodleform {
         $mform->setDefault('coursesuffix', get_string('default_suffix', 'local_clonecategory'));
         $mform->addHelpButton('coursesuffix', 'coursesuffix', 'local_clonecategory');
 
+        $mform->disabledIf('coursesuffix', 'clonemode', 'eq', manager::MODE_CATEGORIES);
+
         if ($hasactive) {
-            $mform->freeze(['sourcecategory', 'targetcategory', 'categorysuffix', 'coursesuffix']);
+            $mform->freeze(['clonemodegroup', 'sourcecategory', 'targetcategory', 'categorysuffix', 'coursesuffix']);
         } else {
             $this->add_action_buttons(true, get_string('clone_button', 'local_clonecategory'));
+            $labels = [];
+            foreach (
+                ['searchcategories', 'sourcecategory', 'targetcategory', 'top',
+                    'expandall', 'collapseall', 'nosearchresults', 'singlesourcehint', 'selectedcategory'] as $key
+            ) {
+                $labels[$key] = get_string($key, $key === 'top' ? 'moodle' : 'local_clonecategory');
+            }
+            $dataid = 'clonecategory-tree-data';
+            $json = json_encode(
+                ['nodes' => manager::get_category_tree(), 'labels' => $labels],
+                JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT
+            );
+            $mform->addElement('html', \html_writer::tag(
+                'script',
+                $json,
+                ['type' => 'application/json', 'id' => $dataid]
+            ));
+            $PAGE->requires->js_call_amd('local_clonecategory/category_tree', 'init', [$dataid]);
         }
+    }
+
+    /**
+     * Validate the clone scope and destination on the server.
+     *
+     * @param array $data Submitted values
+     * @param array $files Submitted files
+     * @return array Validation errors
+     */
+    public function validation($data, $files) {
+        $errors = parent::validation($data, $files);
+        if (
+            !in_array(
+                $data['clonemode'] ?? '',
+                [manager::MODE_CATEGORIES, manager::MODE_SETTINGS, manager::MODE_FULL],
+                true
+            )
+        ) {
+            $errors['clonemode'] = get_string('invalidclonemode', 'local_clonecategory');
+        }
+        try {
+            manager::validate_destination((int)$data['sourcecategory'], (int)$data['targetcategory']);
+        } catch (\moodle_exception $e) {
+            $errors['targetcategory'] = get_string('invaliddestination', 'local_clonecategory');
+        }
+        foreach (['categorysuffix', 'coursesuffix'] as $field) {
+            if (\core_text::strlen($data[$field] ?? '') > 255) {
+                $errors[$field] = get_string('suffixlength', 'local_clonecategory');
+            }
+        }
+        return $errors;
     }
 }

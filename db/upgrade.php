@@ -22,8 +22,6 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-defined('MOODLE_INTERNAL') || die();
-
 /**
  * Custom upgrade function for local_clonecategory.
  *
@@ -103,6 +101,35 @@ function xmldb_local_clonecategory_upgrade($oldversion) {
         }
 
         upgrade_plugin_savepoint(true, 2026090202, 'local', 'clonecategory');
+    }
+
+    if ($oldversion < 2026100700) {
+        $table = new xmldb_table('local_clonecategory_jobs');
+        $field = new xmldb_field('clonemode', XMLDB_TYPE_CHAR, '20', null, XMLDB_NOTNULL, null, 'full');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+        upgrade_plugin_savepoint(true, 2026100700, 'local', 'clonecategory');
+    }
+
+    if ($oldversion < 2026100703) {
+        $table = new xmldb_table('local_clonecategory_jobs');
+        $field = new xmldb_field('timefinished', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+        $table = new xmldb_table('local_clonecategory_items');
+        $field = new xmldb_field('fingerprint', XMLDB_TYPE_CHAR, '64', null, XMLDB_NOTNULL, null, null);
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+        // Never invent snapshots for old resources: their original state is unknown.
+        upgrade_plugin_savepoint(true, 2026100703, 'local', 'clonecategory');
+    }
+
+    if ($oldversion < 2026100705) {
+        // Stable release metadata only; no resource or schema changes are required.
+        upgrade_plugin_savepoint(true, 2026100705, 'local', 'clonecategory');
     }
 
     return true;

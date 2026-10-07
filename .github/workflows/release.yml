@@ -1,0 +1,53 @@
+name: Stable release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  compatibility:
+    uses: ./.github/workflows/ci.yml
+
+  publish:
+    needs: compatibility
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - name: Check out the release tag
+        uses: actions/checkout@v6
+
+      - name: Verify stable release metadata
+        shell: bash
+        run: |
+          [[ "$GITHUB_REF_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          php -r 'define("MOODLE_INTERNAL", true); define("MATURITY_STABLE", 200); require "version.php"; if ($plugin->component !== "local_clonecategory" || $plugin->release !== substr(getenv("GITHUB_REF_NAME"), 1) || $plugin->maturity !== MATURITY_STABLE) { fwrite(STDERR, "Stable version metadata does not match the release tag.\n"); exit(1); }'
+
+      - name: Build Moodle installation archives
+        shell: bash
+        run: |
+          release_version="${GITHUB_REF_NAME#v}"
+          git archive --format=zip --prefix=clonecategory/ --output="local_clonecategory-${release_version}.zip" HEAD
+          git archive --format=tar --prefix=clonecategory/ HEAD | gzip -n > "local_clonecategory-${release_version}.tar.gz"
+          sha256sum "local_clonecategory-${release_version}.zip" "local_clonecategory-${release_version}.tar.gz" > checksums.txt
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          release_version="${GITHUB_REF_NAME#v}"
+          gh release create "$GITHUB_REF_NAME" \
+            "local_clonecategory-${release_version}.zip" \
+            "local_clonecategory-${release_version}.tar.gz" \
+            checksums.txt \
+            --verify-tag --title "Release $GITHUB_REF_NAME" \
+            --notes-file RELEASE_NOTES.md --latest

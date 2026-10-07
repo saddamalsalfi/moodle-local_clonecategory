@@ -24,297 +24,180 @@
 
 require_once(__DIR__ . '/../../config.php');
 
-// Suppress PHP 8.4 PEAR static call deprecation error during script shutdown.
-$GLOBALS['_PEAR_destructor_object_list'] = [];
-register_shutdown_function(function() {
-    $GLOBALS['_PEAR_destructor_object_list'] = [];
-});
-
-require_once($CFG->libdir . '/adminlib.php');
-
 use local_clonecategory\manager;
 
+require_login();
 $categoryid = optional_param('categoryid', 0, PARAM_INT);
 $tab = optional_param('tab', 'clone', PARAM_ALPHA);
-$action = optional_param('action', '', PARAM_ALPHANUMEXT);
-$jobid = optional_param('jobid', 0, PARAM_INT);
-
-$url = new moodle_url('/local/clonecategory/index.php', ['tab' => $tab]);
-if ($categoryid) {
-    $url->param('categoryid', $categoryid);
+if (!in_array($tab, ['clone', 'tasks'], true)) {
+    $tab = 'clone';
 }
-
+$canmanage = has_capability('local/clonecategory:managejobs', context_system::instance());
+$sources = manager::get_category_options(true);
+if (!$canmanage && !$sources) {
+    require_capability('local/clonecategory:clone', context_system::instance());
+}
+if ($categoryid) {
+    require_capability('local/clonecategory:clone', context_coursecat::instance($categoryid));
+}
+$context = $categoryid ? context_coursecat::instance($categoryid) : context_system::instance();
+$url = new moodle_url('/local/clonecategory/index.php', ['tab' => $tab, 'categoryid' => $categoryid]);
 $PAGE->set_url($url);
-$PAGE->set_context(context_system::instance());
+$PAGE->set_context($context);
+$PAGE->add_body_class('local-clonecategory-page');
 $PAGE->set_title(get_string('clonecategory', 'local_clonecategory'));
-$PAGE->set_heading(get_string('clonecategory', 'local_clonecategory'));
+$PAGE->set_heading(get_string('clone_page_title', 'local_clonecategory'));
 
-require_login();
-require_capability('moodle/category:manage', context_system::instance());
-
-// Actions handling.
-if ($action === 'pause' && $jobid && confirm_sesskey()) {
-    manager::pause_job($jobid);
-    redirect($url, get_string('job_paused_success', 'local_clonecategory'), null, \core\output\notification::NOTIFY_INFO);
-} else if ($action === 'resume' && $jobid && confirm_sesskey()) {
-    manager::resume_job($jobid);
-    redirect($url, get_string('job_resumed_success', 'local_clonecategory'), null, \core\output\notification::NOTIFY_SUCCESS);
-} else if ($action === 'rollback' && $jobid && confirm_sesskey()) {
-    manager::rollback_job($jobid);
-    redirect($url, get_string('job_rolled_back_success', 'local_clonecategory'), null, \core\output\notification::NOTIFY_SUCCESS);
-} else if ($action === 'delete_job' && $jobid && confirm_sesskey()) {
-    manager::delete_job($jobid);
-    redirect($url, get_string('job_deleted_success', 'local_clonecategory'), null, \core\output\notification::NOTIFY_INFO);
-} else if ($action === 'run_tasks' && confirm_sesskey()) {
-    // Run tasks inline safely.
-    \core_php_time_limit::raise();
-    \core\session\manager::write_close();
-
-    $olderrorlevel = error_reporting();
-    error_reporting($olderrorlevel & ~E_DEPRECATED & ~E_STRICT);
-
-    ob_start();
-    echo get_string('task_starting', 'local_clonecategory');
-
-    $tasks_run = 0;
-    $targetclass = \local_clonecategory\task\clone_category_task::class;
+// State-changing actions are POST only. A sesskey in a link is never enough.
+$action = optional_param('action', '', PARAM_ALPHA);
+if ($action !== '') {
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        throw new moodle_exception('invalidrequest');
+    }
+    require_sesskey();
+    $jobid = required_param('jobid', PARAM_INT);
     try {
-        while ($task = \core\task\manager::get_next_adhoc_task(time(), true, $targetclass)) {
-            $a = (object)['class' => get_class($task), 'id' => $task->get_id()];
-            echo get_string('task_executing', 'local_clonecategory', $a);
-            try {
-                $task->execute();
-                \core\task\manager::adhoc_task_complete($task);
-                echo get_string('task_completed_success', 'local_clonecategory');
-            } catch (\Throwable $e) {
-                \core\task\manager::adhoc_task_failed($task);
-                echo get_string('task_failed', 'local_clonecategory', $e->getMessage());
-            }
-            $tasks_run++;
+        switch ($action) {
+            case 'pause':
+                manager::pause_job($jobid);
+                break;
+            case 'resume':
+                manager::resume_job($jobid);
+                break;
+            case 'cancel':
+                manager::cancel_job($jobid);
+                break;
+            case 'rollback':
+                manager::rollback_job($jobid);
+                break;
+            case 'delete':
+                manager::delete_job($jobid);
+                break;
+            default:
+                throw new moodle_exception('invalidrequest');
         }
-    } finally {
-        error_reporting($olderrorlevel);
+        redirect(
+            $url,
+            get_string('actioncomplete', 'local_clonecategory'),
+            null,
+            \core\output\notification::NOTIFY_SUCCESS
+        );
+    } catch (moodle_exception $e) {
+        redirect($url, s($e->getMessage()), null, \core\output\notification::NOTIFY_ERROR);
     }
-
-    if ($tasks_run === 0) {
-        echo get_string('no_pending_tasks', 'local_clonecategory');
-    }
-
-    $fulloutput = ob_get_clean();
-
-    echo $OUTPUT->header();
-    echo $OUTPUT->heading(get_string('force_run_tasks', 'local_clonecategory'));
-
-    if (trim($fulloutput) === '') {
-        $fulloutput = get_string('no_output_returned', 'local_clonecategory');
-    }
-
-    echo html_writer::tag('div', get_string('terminal_output', 'local_clonecategory'), ['class' => 'font-weight-bold mb-2']);
-    echo html_writer::tag('pre', s($fulloutput), [
-        'style' => 'background: #1e1e1e; color: #00ff00; padding: 15px; border-radius: 5px; overflow-x: auto; font-family: Consolas, monospace; direction: ltr; text-align: left;'
-    ]);
-
-    echo html_writer::tag('div',
-        html_writer::link(new moodle_url('/local/clonecategory/index.php', ['tab' => 'tasks']), get_string('back_to_tasks', 'local_clonecategory'), ['class' => 'btn btn-primary']),
-        ['class' => 'mt-4']
-    );
-
-    echo $OUTPUT->footer();
-    die();
 }
 
 $mform = new \local_clonecategory\form\clone_form($url, ['categoryid' => $categoryid]);
-
-// Clear PEAR destructors array and suppress deprecations during PHP shutdown (fixes PHP 8.4 PEAR static call issue).
-register_shutdown_function(function() {
-    $GLOBALS['_PEAR_destructor_object_list'] = [];
-    @error_reporting(0);
-});
-
 if ($tab === 'clone' && $mform->is_cancelled()) {
     redirect(new moodle_url('/course/management.php'));
-} else if ($tab === 'clone' && $data = $mform->get_data()) {
+} else if ($tab === 'clone' && ($data = $mform->get_data())) {
     try {
         manager::create_job(
-            $data->sourcecategory,
-            $data->targetcategory,
+            (int)$data->sourcecategory,
+            (int)$data->targetcategory,
             $data->categorysuffix ?? '',
             $data->coursesuffix ?? '',
-            $USER->id
+            (int)$USER->id,
+            $data->clonemode
         );
-        redirect(new moodle_url('/local/clonecategory/index.php', ['tab' => 'tasks']), get_string('cloningsuccess', 'local_clonecategory'), null, \core\output\notification::NOTIFY_SUCCESS);
-    } catch (\Throwable $e) {
-        redirect(new moodle_url('/local/clonecategory/index.php', ['tab' => 'clone']), $e->getMessage(), null, \core\output\notification::NOTIFY_ERROR);
+        redirect(
+            new moodle_url('/local/clonecategory/index.php', ['tab' => 'tasks', 'categoryid' => $categoryid]),
+            get_string('cloningsuccess', 'local_clonecategory'),
+            null,
+            \core\output\notification::NOTIFY_SUCCESS
+        );
+    } catch (moodle_exception $e) {
+        redirect($url, s($e->getMessage()), null, \core\output\notification::NOTIFY_ERROR);
     }
 }
 
+$PAGE->requires->js_call_amd('local_clonecategory/job_progress', 'init', [
+    (new moodle_url('/local/clonecategory/progress.php'))->out(false), sesskey(),
+    get_string('liveupdatesfailed', 'local_clonecategory'),
+        ['title' => get_string('confirm'), 'yes' => get_string('yes'), 'cancel' => get_string('cancel')],
+]);
 echo $OUTPUT->header();
-echo $OUTPUT->heading(get_string('clone_page_title', 'local_clonecategory'));
-
-// Render Tabs
-$tabs = [
-    new \tabobject('clone', new moodle_url('/local/clonecategory/index.php', ['tab' => 'clone']), get_string('clonecategory', 'local_clonecategory')),
-    new \tabobject('tasks', new moodle_url('/local/clonecategory/index.php', ['tab' => 'tasks']), get_string('scheduled_tasks', 'local_clonecategory'))
-];
-print_tabs([$tabs], $tab);
+echo html_writer::start_div('local-clonecategory-shell');
+echo html_writer::div(html_writer::tag('p', get_string('pageintro', 'local_clonecategory')), 'local-clonecategory-hero');
+print_tabs([[
+    new tabobject(
+        'clone',
+        new moodle_url('/local/clonecategory/index.php', ['tab' => 'clone', 'categoryid' => $categoryid]),
+        get_string('clonecategory', 'local_clonecategory')
+    ),
+    new tabobject(
+        'tasks',
+        new moodle_url('/local/clonecategory/index.php', ['tab' => 'tasks', 'categoryid' => $categoryid]),
+        get_string('scheduled_tasks', 'local_clonecategory')
+    ),
+]], $tab);
 
 if ($tab === 'clone') {
     $mform->display();
-} else if ($tab === 'tasks') {
-    global $DB;
-
-    // Show Active Jobs
-    $activejob = manager::get_active_job();
-    if ($activejob) {
-        echo html_writer::start_div('card mb-4 border-primary');
-        echo html_writer::start_div('card-header bg-primary text-white font-weight-bold d-flex justify-content-between align-items-center');
-        echo html_writer::span(get_string('active_job_title', 'local_clonecategory', $activejob->id));
-        $statusbadge = match ($activejob->status) {
-            manager::STATUS_RUNNING => html_writer::span(get_string('status_running', 'local_clonecategory'), 'badge badge-success bg-success'),
-            manager::STATUS_PAUSED  => html_writer::span(get_string('status_paused', 'local_clonecategory'), 'badge badge-warning bg-warning text-dark'),
-            default                 => html_writer::span(get_string('status_pending', 'local_clonecategory'), 'badge badge-info bg-info')
-        };
-        echo $statusbadge;
-        echo html_writer::end_div();
-
-        echo html_writer::start_div('card-body');
-
-        // Progress Bar
-        echo html_writer::tag('label', get_string('progress', 'local_clonecategory') . ": {$activejob->progress}%", ['class' => 'font-weight-bold']);
-        echo html_writer::start_div('progress mb-3', ['style' => 'height: 25px;']);
-        $pbarclass = ($activejob->status === manager::STATUS_PAUSED) ? 'bg-warning text-dark' : 'bg-primary progress-bar-striped progress-bar-animated';
-        echo html_writer::div("{$activejob->progress}%", "progress-bar {$pbarclass}", [
-            'role' => 'progressbar',
-            'style' => "width: {$activejob->progress}%; font-weight: bold; line-height: 25px;",
-            'aria-valuenow' => $activejob->progress,
-            'aria-valuemin' => 0,
-            'aria-valuemax' => 100
-        ]);
-        echo html_writer::end_div();
-
-        // Statistics Grid
-        echo html_writer::start_div('row mb-3');
-        echo html_writer::div(
-            html_writer::tag('strong', get_string('categories_copied', 'local_clonecategory') . ': ') . "{$activejob->categoriescount} / {$activejob->totalcategories}",
-            'col-md-6'
-        );
-        echo html_writer::div(
-            html_writer::tag('strong', get_string('courses_copied', 'local_clonecategory') . ': ') . "{$activejob->coursescount} / {$activejob->totalcourses}",
-            'col-md-6'
-        );
-        echo html_writer::end_div();
-
-        if (!empty($activejob->currentstep)) {
-            echo html_writer::div(
-                html_writer::tag('strong', get_string('current_step', 'local_clonecategory') . ': ') . s($activejob->currentstep),
-                'alert alert-secondary py-2 mb-3'
-            );
-        }
-
-        // Action Buttons for Active Job
-        echo html_writer::start_div('d-flex gap-2');
-        if ($activejob->status === manager::STATUS_RUNNING || $activejob->status === manager::STATUS_PENDING) {
-            $pauseurl = new moodle_url('/local/clonecategory/index.php', ['tab' => 'tasks', 'action' => 'pause', 'jobid' => $activejob->id, 'sesskey' => sesskey()]);
-            echo html_writer::link($pauseurl, get_string('btn_pause', 'local_clonecategory'), ['class' => 'btn btn-warning mr-2']);
-        } else if ($activejob->status === manager::STATUS_PAUSED) {
-            $resumeurl = new moodle_url('/local/clonecategory/index.php', ['tab' => 'tasks', 'action' => 'resume', 'jobid' => $activejob->id, 'sesskey' => sesskey()]);
-            echo html_writer::link($resumeurl, get_string('btn_resume', 'local_clonecategory'), ['class' => 'btn btn-success mr-2']);
-        }
-
-        // Rollback button (allowed only for the latest job within 24h)
-        $latestjobid = (int)$DB->get_field_sql("SELECT MAX(id) FROM {local_clonecategory_jobs}");
-        if (manager::can_rollback_job($activejob, $latestjobid)) {
-            $rollbackurl = new moodle_url('/local/clonecategory/index.php', ['tab' => 'tasks', 'action' => 'rollback', 'jobid' => $activejob->id, 'sesskey' => sesskey()]);
-            echo html_writer::link(
-                $rollbackurl,
-                get_string('btn_rollback', 'local_clonecategory'),
-                [
-                    'class' => 'btn btn-danger',
-                    'onclick' => "return confirm('" . addslashes_js(get_string('rollback_confirm', 'local_clonecategory')) . "');"
-                ]
-            );
-        }
-        echo html_writer::end_div();
-
-        echo html_writer::end_div();
-        echo html_writer::end_div();
-    }
-
-    // Task Execution Toolbar
-    echo html_writer::start_div('mb-3 d-flex justify-content-between align-items-center');
-    $runurl = new moodle_url('/local/clonecategory/index.php', ['tab' => 'tasks', 'action' => 'run_tasks', 'sesskey' => sesskey()]);
-    echo html_writer::link($runurl, get_string('force_run_tasks', 'local_clonecategory'), ['class' => 'btn btn-outline-primary']);
-    echo html_writer::end_div();
-
-    // All Jobs History Table
-    echo html_writer::tag('h3', get_string('all_jobs_history', 'local_clonecategory'));
-
-    $latestjobid = (int)$DB->get_field_sql("SELECT MAX(id) FROM {local_clonecategory_jobs}");
-    $jobs = $DB->get_records('local_clonecategory_jobs', null, 'id DESC', '*', 0, 50);
-    if (empty($jobs)) {
+} else {
+    echo $OUTPUT->notification(get_string('cronrequired', 'local_clonecategory'), 'info');
+    echo html_writer::div('', 'alert alert-warning', ['id' => 'clone-live-error', 'hidden' => 'hidden', 'role' => 'status']);
+    $jobs = manager::get_visible_jobs();
+    $latestjobid = (int)$DB->get_field_sql('SELECT MAX(id) FROM {local_clonecategory_jobs}');
+    if (!$jobs) {
         echo html_writer::tag('p', get_string('no_jobs_found', 'local_clonecategory'));
-    } else {
-        $table = new \html_table();
-        $table->head = [
-            get_string('id', 'local_clonecategory'),
-            get_string('user', 'local_clonecategory'),
-            get_string('status', 'local_clonecategory'),
-            get_string('stats_categories', 'local_clonecategory'),
-            get_string('stats_courses', 'local_clonecategory'),
-            get_string('progress', 'local_clonecategory'),
-            get_string('time_started', 'local_clonecategory'),
-            get_string('actions', 'local_clonecategory'),
-        ];
-
-        foreach ($jobs as $j) {
-            $user = $DB->get_record('user', ['id' => $j->userid], 'id, firstname, lastname');
-            $username = $user ? fullname($user) : "User #{$j->userid}";
-
-            $statusbadge = match ($j->status) {
-                manager::STATUS_COMPLETED => html_writer::span(get_string('status_completed', 'local_clonecategory'), 'badge badge-success bg-success'),
-                manager::STATUS_FAILED    => html_writer::span(get_string('status_failed', 'local_clonecategory'), 'badge badge-danger bg-danger'),
-                manager::STATUS_PAUSED    => html_writer::span(get_string('status_paused', 'local_clonecategory'), 'badge badge-warning bg-warning text-dark'),
-                manager::STATUS_RUNNING   => html_writer::span(get_string('status_running', 'local_clonecategory'), 'badge badge-primary bg-primary'),
-                manager::STATUS_ROLLED_BACK => html_writer::span(get_string('status_rolled_back', 'local_clonecategory'), 'badge badge-secondary bg-secondary'),
-                default                   => html_writer::span(get_string('status_pending', 'local_clonecategory'), 'badge badge-info bg-info'),
-            };
-
-            $actions = [];
-
-            if ($j->status === manager::STATUS_PAUSED) {
-                $resumeurl = new moodle_url('/local/clonecategory/index.php', ['tab' => 'tasks', 'action' => 'resume', 'jobid' => $j->id, 'sesskey' => sesskey()]);
-                $actions[] = html_writer::link($resumeurl, get_string('btn_resume', 'local_clonecategory'), ['class' => 'btn btn-sm btn-success mr-1']);
-            }
-
-            if (manager::can_rollback_job($j, $latestjobid)) {
-                $rollbackurl = new moodle_url('/local/clonecategory/index.php', ['tab' => 'tasks', 'action' => 'rollback', 'jobid' => $j->id, 'sesskey' => sesskey()]);
-                $actions[] = html_writer::link(
-                    $rollbackurl,
-                    get_string('btn_rollback', 'local_clonecategory'),
-                    [
-                        'class' => 'btn btn-sm btn-danger mr-1',
-                        'onclick' => "return confirm('" . addslashes_js(get_string('rollback_confirm', 'local_clonecategory')) . "');"
-                    ]
-                );
-            }
-
-            $deleteurl = new moodle_url('/local/clonecategory/index.php', ['tab' => 'tasks', 'action' => 'delete_job', 'jobid' => $j->id, 'sesskey' => sesskey()]);
-            $actions[] = html_writer::link($deleteurl, get_string('btn_delete', 'local_clonecategory'), ['class' => 'btn btn-sm btn-outline-danger']);
-
-            $table->data[] = [
-                $j->id,
-                $username,
-                $statusbadge,
-                "{$j->categoriescount} / {$j->totalcategories}",
-                "{$j->coursescount} / {$j->totalcourses}",
-                "{$j->progress}%",
-                userdate($j->timecreated),
-                implode(' ', $actions)
-            ];
+    }
+    foreach ($jobs as $job) {
+        $details = html_writer::tag('h3', get_string('active_job_title', 'local_clonecategory', $job->id));
+        $details .= html_writer::tag('p', get_string('mode_' . $job->clonemode, 'local_clonecategory'));
+        $details .= html_writer::tag(
+            'span',
+            get_string('status_' . $job->status, 'local_clonecategory'),
+            ['class' => 'badge bg-secondary badge-secondary', 'data-field' => 'status']
+        );
+        $details .= html_writer::div(html_writer::div($job->progress . '%', 'progress-bar', [
+            'style' => 'width:' . (int)$job->progress . '%', 'role' => 'progressbar',
+            'aria-label' => get_string('progress', 'local_clonecategory'),
+            'aria-valuenow' => (int)$job->progress, 'aria-valuemin' => 0, 'aria-valuemax' => 100,
+            'data-field' => 'progress',
+        ]), 'progress my-3');
+        $details .= html_writer::tag('p', s($job->currentstep ?? ''), ['data-field' => 'currentstep', 'class' => 'clone-job-step']);
+        $details .= html_writer::tag('p', get_string('categories_copied', 'local_clonecategory') . ': ' .
+            html_writer::tag('span', $job->categoriescount . ' / ' . $job->totalcategories, ['data-field' => 'categories']) .
+            ' · ' . get_string('courses_copied', 'local_clonecategory') . ': ' .
+            html_writer::tag('span', $job->coursescount . ' / ' . $job->totalcourses, ['data-field' => 'courses']));
+        $buttons = [];
+        if (in_array($job->status, [manager::STATUS_PENDING, manager::STATUS_RUNNING], true)) {
+            $buttons['pause'] = 'btn_pause';
         }
-
-        echo html_writer::table($table);
+        if (in_array($job->status, [manager::STATUS_PAUSED, manager::STATUS_FAILED], true)) {
+            $buttons['resume'] = 'btn_resume';
+        }
+        if (in_array($job->status, [manager::STATUS_PENDING, manager::STATUS_RUNNING, manager::STATUS_PAUSED], true)) {
+            $buttons['cancel'] = 'btn_cancel';
+        }
+        if (manager::can_rollback_job($job, $latestjobid)) {
+            $buttons['rollback'] = 'btn_rollback';
+        }
+        if (!in_array($job->status, manager::active_states(), true)) {
+            $buttons['delete'] = 'btn_delete';
+        }
+        $actions = '';
+        foreach ($buttons as $name => $label) {
+            $fields = html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()]) .
+                html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'jobid', 'value' => $job->id]) .
+                html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'action', 'value' => $name]);
+            $fields .= html_writer::tag(
+                'button',
+                get_string($label, 'local_clonecategory'),
+                ['type' => 'submit', 'class' => 'btn ' . ($name === 'rollback' ? 'btn-outline-danger' : 'btn-outline-primary')]
+            );
+            $attributes = ['method' => 'post', 'action' => $url->out(false)];
+            if (in_array($name, ['rollback', 'delete', 'cancel'], true)) {
+                $attributes['data-clone-confirm'] = get_string('confirm_' . $name, 'local_clonecategory');
+            }
+            $actions .= html_writer::tag('form', $fields, $attributes);
+        }
+        $details .= html_writer::div($actions, 'clone-job-actions');
+        echo html_writer::div($details, 'card mb-3 clone-job', [
+            'data-jobid' => (int)$job->id, 'data-status' => $job->status,
+        ]);
     }
 }
-
+echo html_writer::end_div();
 echo $OUTPUT->footer();

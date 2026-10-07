@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Admin settings for local_clonecategory.
+ * Capabilities for local_clonecategory.
  *
  * @package    local_clonecategory
  * @copyright  2026 Saddam Al-Salfi
@@ -24,11 +24,17 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-if ($hassiteconfig) {
-    $ADMIN->add('courses', new admin_externalpage(
-        'local_clonecategory',
-        get_string('clone_page_title', 'local_clonecategory'),
-        new moodle_url('/local/clonecategory/index.php'),
-        'local/clonecategory:managejobs'
-    ));
-}
+$capabilities = [
+    'local/clonecategory:clone' => [
+        'riskbitmask' => RISK_DATALOSS,
+        'captype' => 'write',
+        'contextlevel' => CONTEXT_COURSECAT,
+        'archetypes' => ['manager' => CAP_ALLOW],
+    ],
+    'local/clonecategory:managejobs' => [
+        'riskbitmask' => RISK_DATALOSS | RISK_PERSONAL,
+        'captype' => 'write',
+        'contextlevel' => CONTEXT_SYSTEM,
+        'archetypes' => ['manager' => CAP_ALLOW],
+    ],
+];

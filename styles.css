@@ -1,0 +1,285 @@
+/* Clone Category. Copyright 2026 Saddam Al-Salfi. GNU GPL v3 or later. */
+.local-clonecategory-page .local-clonecategory-shell {
+    max-width: 1100px;
+    margin: 0 auto;
+    min-width: 0;
+    color: #172d46;
+}
+.local-clonecategory-page .local-clonecategory-hero {
+    /* stylelint-disable-next-line csstree/validator -- Valid CSS math supported by Moodle browsers. */
+    padding: clamp(1.25rem, 4vw, 2.5rem);
+    margin-bottom: 1.5rem;
+    border: 1px solid #d4e4ed;
+    border-radius: 1.25rem;
+    background: linear-gradient(125deg, #edf5ff, #effaf7);
+}
+.local-clonecategory-page .local-clonecategory-hero p {
+    margin-bottom: 0;
+    color: #40566b;
+    line-height: 1.8;
+}
+.local-clonecategory-page .mform,
+.local-clonecategory-page .card {
+    /* stylelint-disable-next-line csstree/validator -- Valid CSS math supported by Moodle browsers. */
+    padding: clamp(1rem, 3vw, 1.75rem);
+    border: 1px solid #dae4ed;
+    border-radius: 1rem;
+    background: #fff;
+    box-shadow: 0 6px 24px rgba(23, 45, 70, .06);
+    min-width: 0;
+}
+.local-clonecategory-page .mform fieldset {
+    min-width: 0;
+}
+.local-clonecategory-page .mform legend {
+    color: #172d46;
+    font-weight: 700;
+}
+.local-clonecategory-page .form-control,
+.local-clonecategory-page .custom-select {
+    border-radius: .65rem;
+    max-width: 100%;
+}
+.local-clonecategory-page .form-autocomplete-selection {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    max-width: 100%;
+}
+.local-clonecategory-page .form-autocomplete-selection .badge {
+    white-space: normal;
+    text-align: start;
+    line-height: 1.6;
+    max-width: 100%;
+}
+.local-clonecategory-page .form-autocomplete-suggestions {
+    width: 100%;
+    max-width: 100%;
+    /* stylelint-disable-next-line csstree/validator -- Valid CSS math keeps lists inside the viewport. */
+    max-height: min(18rem, 45vh);
+    overflow-y: auto;
+    overflow-x: hidden;
+    border-radius: .75rem;
+    box-shadow: 0 12px 32px rgba(23, 45, 70, .14);
+}
+.local-clonecategory-page .form-autocomplete-suggestions li {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    line-height: 1.6;
+    padding: .65rem .85rem;
+}
+.local-clonecategory-page .btn {
+    border-radius: .65rem;
+    min-height: 44px;
+    white-space: normal;
+    transition: box-shadow .18s ease, background-color .18s ease;
+}
+.local-clonecategory-page .btn-primary {
+    background: #185a9d;
+    border-color: #185a9d;
+}
+.local-clonecategory-page .btn-primary:hover {
+    background: #124779;
+    border-color: #124779;
+}
+.local-clonecategory-page .btn:focus-visible {
+    outline: 3px solid #167b89;
+    outline-offset: 3px;
+}
+.local-clonecategory-page .nav-tabs {
+    flex-wrap: wrap;
+    gap: .25rem;
+    margin-bottom: 1.25rem;
+}
+.local-clonecategory-page .progress {
+    border-radius: 1rem;
+}
+.local-clonecategory-page .local-clonecategory-table {
+    overflow-x: auto;
+    max-width: 100%;
+}
+.local-clonecategory-page .d-flex.gap-2 {
+    flex-wrap: wrap;
+    gap: .5rem;
+}
+
+@media (max-width: 767px) {
+    .local-clonecategory-page .mform .fitem {
+        margin-inline: 0;
+    }
+    .local-clonecategory-page .mform .col-md-3,
+    .local-clonecategory-page .mform .col-md-9 {
+        width: 100%;
+        max-width: 100%;
+        flex: 0 0 100%;
+    }
+    .local-clonecategory-page .mform input[type="text"],
+    .local-clonecategory-page .mform select {
+        width: 100%;
+    }
+    .local-clonecategory-page .nav-tabs .nav-link {
+        padding: .65rem .8rem;
+    }
+    .local-clonecategory-page .card-header {
+        overflow-wrap: anywhere;
+        gap: .5rem;
+        flex-wrap: wrap;
+    }
+    .local-clonecategory-page .local-clonecategory-table table {
+        min-width: 650px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .local-clonecategory-page .btn {
+        transition: none;
+    }
+    .local-clonecategory-page .progress-bar {
+        animation: none;
+        transition: none;
+    }
+}
+.local-clonecategory-page .clone-tree-panel {
+    width: 100%;
+    min-width: 0;
+    border: 1px solid #ccdce7;
+    border-radius: .9rem;
+    padding: .8rem;
+    background: #f8fbfd;
+}
+.local-clonecategory-page .clone-tree-hint {
+    font-size: .9rem;
+    color: #40566b;
+    line-height: 1.7;
+}
+.local-clonecategory-page .clone-tree-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+    margin: .7rem 0;
+}
+.local-clonecategory-page .clone-tree-list {
+    /* stylelint-disable-next-line csstree/validator -- Valid CSS math keeps lists inside the viewport. */
+    max-height: min(24rem, 50vh);
+    overflow: auto;
+    padding: .2rem;
+    margin: 0;
+    list-style: none;
+    scrollbar-width: thin;
+}
+.local-clonecategory-page .clone-tree-children {
+    list-style: none;
+    margin: 0;
+    padding-inline-start: .85rem;
+    border-inline-start: 2px solid #d7e5ed;
+}
+.local-clonecategory-page .clone-tree-row {
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    padding: .35rem .5rem;
+    margin: .15rem 0;
+    border: 1px solid transparent;
+    border-radius: .65rem;
+    background: #fff;
+}
+.local-clonecategory-page .clone-tree-row:hover {
+    background: #edf5fb;
+}
+.local-clonecategory-page .clone-tree-row.is-selected {
+    background: #e4f4f3;
+    border-color: #16818a;
+}
+.local-clonecategory-page .clone-tree-choice {
+    width: 1.5rem;
+    height: 1.5rem;
+    flex-shrink: 0;
+    accent-color: #167b89;
+}
+.local-clonecategory-page .clone-tree-title {
+    border: 0;
+    background: transparent;
+    color: #173f64;
+    text-align: start;
+    overflow-wrap: anywhere;
+    min-width: 0;
+    min-height: 44px;
+    flex: 1;
+    margin: 0;
+    padding: .35rem 0;
+    line-height: 1.65;
+    cursor: pointer;
+}
+.local-clonecategory-page button.clone-tree-title::before {
+    content: '▸';
+    display: inline-block;
+    margin-inline-end: .45rem;
+}
+.local-clonecategory-page button.clone-tree-title[aria-expanded="true"]::before {
+    content: '▾';
+}
+[dir="rtl"] .local-clonecategory-page button.clone-tree-title[aria-expanded="false"]::before {
+    content: '◂';
+}
+.local-clonecategory-page .clone-tree-title:focus-visible {
+    outline: 3px solid #167b89;
+    outline-offset: 2px;
+    border-radius: .4rem;
+}
+.local-clonecategory-page .clone-tree-selected {
+    margin: .75rem 0 0;
+    color: #155f63;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+.local-clonecategory-page .clone-tree-empty {
+    padding: 1rem;
+    color: #40566b;
+}
+.local-clonecategory-page .clone-tree-panel [hidden] {
+    display: none;
+}
+
+@media (max-width: 480px) {
+    .local-clonecategory-page .clone-tree-panel {
+        padding: .5rem;
+    }
+    .local-clonecategory-page .clone-tree-children {
+        padding-inline-start: .5rem;
+    }
+}
+.local-clonecategory-page .clone-job-actions {
+    display: flex;
+    gap: .5rem;
+    flex-wrap: wrap;
+}
+.local-clonecategory-page .clone-job-actions form {
+    margin: 0;
+}
+.local-clonecategory-page .clone-job-step {
+    overflow-wrap: anywhere;
+}
+.local-clonecategory-page [hidden] {
+    display: none;
+}
+
+[dir="rtl"] .local-clonecategory-page [data-groupname="clonemodegroup"] .form-check-inline {
+    margin-right: 0;
+}
+.local-clonecategory-page [data-groupname="clonemodegroup"] .form-check-inline {
+    display: flex;
+    align-items: flex-start;
+    gap: .65rem;
+    padding: .65rem .8rem;
+    margin: .35rem 0;
+    border: 1px solid #d7e5ed;
+    border-radius: .65rem;
+    background: #f8fbfd;
+    width: 100%;
+    overflow-wrap: anywhere;
+    line-height: 1.7;
+}
+.local-clonecategory-page [data-groupname="clonemodegroup"] .form-check-input {
+    position: static;
+    margin: .3rem 0 0;
+    flex-shrink: 0;
+}

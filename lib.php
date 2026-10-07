@@ -22,8 +22,6 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-defined('MOODLE_INTERNAL') || die();
-
 /**
  * Extends the category navigation tree to add clone category option.
  *
@@ -32,8 +30,11 @@ defined('MOODLE_INTERNAL') || die();
  */
 function local_clonecategory_extend_navigation_category_settings($navigation, $context) {
     global $PAGE;
-    if (has_capability('moodle/category:manage', $context)) {
-        $url = new moodle_url('/local/clonecategory/index.php', array('categoryid' => $context->instanceid));
+    if (
+        has_capability('local/clonecategory:clone', $context) &&
+            has_capability('moodle/category:manage', $context)
+    ) {
+        $url = new moodle_url('/local/clonecategory/index.php', ['categoryid' => $context->instanceid]);
         $node = navigation_node::create(
             get_string('clonecategory', 'local_clonecategory'),
             $url,
