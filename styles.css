@@ -6,8 +6,7 @@
     color: #172d46;
 }
 .local-clonecategory-page .local-clonecategory-hero {
-    /* stylelint-disable-next-line csstree/validator -- Valid CSS math supported by Moodle browsers. */
-    padding: clamp(1.25rem, 4vw, 2.5rem);
+    padding: 1.5rem;
     margin-bottom: 1.5rem;
     border: 1px solid #d4e4ed;
     border-radius: 1.25rem;
@@ -20,8 +19,7 @@
 }
 .local-clonecategory-page .mform,
 .local-clonecategory-page .card {
-    /* stylelint-disable-next-line csstree/validator -- Valid CSS math supported by Moodle browsers. */
-    padding: clamp(1rem, 3vw, 1.75rem);
+    padding: 1.25rem;
     border: 1px solid #dae4ed;
     border-radius: 1rem;
     background: #fff;
@@ -54,8 +52,7 @@
 .local-clonecategory-page .form-autocomplete-suggestions {
     width: 100%;
     max-width: 100%;
-    /* stylelint-disable-next-line csstree/validator -- Valid CSS math keeps lists inside the viewport. */
-    max-height: min(18rem, 45vh);
+    max-height: 18rem;
     overflow-y: auto;
     overflow-x: hidden;
     border-radius: .75rem;
@@ -158,8 +155,7 @@
     margin: .7rem 0;
 }
 .local-clonecategory-page .clone-tree-list {
-    /* stylelint-disable-next-line csstree/validator -- Valid CSS math keeps lists inside the viewport. */
-    max-height: min(24rem, 50vh);
+    max-height: 24rem;
     overflow: auto;
     padding: .2rem;
     margin: 0;
@@ -193,7 +189,6 @@
     width: 1.5rem;
     height: 1.5rem;
     flex-shrink: 0;
-    accent-color: #167b89;
 }
 .local-clonecategory-page .clone-tree-title {
     border: 0;
