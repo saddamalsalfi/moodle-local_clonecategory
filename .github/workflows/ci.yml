@@ -113,13 +113,9 @@ jobs:
         if: ${{ !cancelled() }}
         run: moodle-plugin-ci mustache
 
-      - name: Grunt (Lint JavaScript and CSS)
+      - name: Grunt
         if: ${{ !cancelled() }}
-        run: moodle-plugin-ci grunt -t eslint:amd -t stylelint --max-lint-warnings 0
-
-      - name: Grunt (Verify AMD build output)
-        if: ${{ !cancelled() && matrix.moodle-branch == 'MOODLE_503_STABLE' }}
-        run: moodle-plugin-ci grunt -t amd --max-lint-warnings 0
+        run: moodle-plugin-ci grunt --max-lint-warnings 0
 
       - name: PHPUnit tests
         if: ${{ !cancelled() }}
