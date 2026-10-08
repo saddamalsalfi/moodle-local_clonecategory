@@ -2,7 +2,7 @@
 
 Clone Moodle category hierarchies using Moodle's background task, course creation and backup/restore APIs.
 
-## Version 1.3.1
+## Version 1.3.2
 
 Stable release of the three clone scopes, responsive category selectors and safe background operations. See [release notes](RELEASE_NOTES.md), [change history](CHANGELOG.md) and [validation evidence](QA.md).
 
