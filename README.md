@@ -6,7 +6,7 @@ Clone Moodle category hierarchies using Moodle's background task, course creatio
 
 Stable release of the three clone scopes, responsive category selectors and safe background operations. See [release notes](RELEASE_NOTES.md), [change history](CHANGELOG.md) and [validation evidence](QA.md).
 
-Download the Moodle installation ZIP from the [v1.3.2 release](https://github.com/saddamalsalfi/moodle-local_clonecategory/releases/tag/v1.2.1). GitHub-generated tag archives are source archives: extract and rename their root folder to `clonecategory` before manual installation.
+Download the Moodle installation ZIP from the [v1.3.2 release](https://github.com/saddamalsalfi/moodle-local_clonecategory/releases/tag/v1.3.2). GitHub-generated tag archives are source archives: extract and rename their root folder to `clonecategory` before manual installation.
 
 ### Rollback correction
 
