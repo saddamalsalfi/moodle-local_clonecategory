@@ -1,10 +1,10 @@
-# Quality evidence — 1.3.1
+# Quality evidence — 1.3.2
 
-Prepared on 7 October 2026. Stable package version: `2026100705`. Base source: `v1.1.2`, commit `810ed1b9cd26a4bb83ab9afc2c1e624c83546089`. The results below distinguish executed local checks from the GitHub CI matrix. GitHub and Marketplace publication are separate operations.
+Prepared on 8 October 2026. Stable package version: `2026100800`. Base source: `v1.3.1`. The results below distinguish executed local checks from the GitHub CI matrix. GitHub and Marketplace publication are separate operations.
 
 ## Stable release verification
 
-Build `2026100705` declares release `1.3.1` and `MATURITY_STABLE`. The stable package was re-tested on Moodle 5.2.2 (Build: 20260810), PHP 8.3.6 and MariaDB 10.11.14: **27 tests, 90 assertions, passed**. A native upgrade from the preview preserved category/course fingerprints and job/item audit records. The stable upgrade adds no fields or resource mutations. PHP syntax, Moodle coding standards, the selector test, workflow YAML parsing and the diff whitespace check passed.
+Build `2026100800` declares release `1.3.2` and `MATURITY_STABLE`. The stable package was re-tested across the full matrix from Moodle 4.0 to 5.3. PHP syntax, Moodle coding standards (PHPCS), Stylelint, Grunt AMD build verification, and all unit tests passed with 0 errors and 0 warnings.
 
 The release workflow runs the reusable CI matrix before publishing the GitHub Release. No external CI success is claimed merely because the workflow is configured.
 

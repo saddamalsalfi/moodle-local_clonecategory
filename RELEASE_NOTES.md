@@ -1,13 +1,13 @@
-# Release v1.3.1
+# Release v1.3.2
 
-**Release date:** 7 October 2026  
+**Release date:** 8 October 2026  
 **Component:** `local_clonecategory`  
-**Plugin build:** `2026100705`  
+**Plugin build:** `2026100800`  
 **Maturity:** `MATURITY_STABLE`  
 **Maintainer:** [@saddamalsalfi](https://github.com/saddamalsalfi)  
 **Licence:** GNU GPL v3 or later
 
-Clone Category now provides three copy scopes, searchable category trees and safer background operations. This release also corrects rollback being blocked after viewing an unchanged empty course.
+Clone Category v1.3.2 delivers complete compliance with Moodle CodeSniffer, Stylelint across all supported Moodle branches (4.0 through 5.3), and officially rebuilt AMD JavaScript assets.
 
 ## New copy scopes
 

@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.3.2 — 2026-10-08
+
+Stable release; Moodle plugin build `2026100800`.
+
+### Fixed
+
+- Rebuilt minified AMD assets using the official Moodle Grunt toolchain with unmangled variable names.
+- Alphabetised all language strings in English and Arabic to comply strictly with Moodle CodeSniffer standards.
+- Replaced CSS `clamp()` and `min()` functions in `styles.css` with standard values to ensure full compatibility with Moodle 4.0 Stylelint.
+- Added PHPUnit `@covers` annotations and corrected PHPDoc parameter types across all classes and test suites.
+
 ## 1.3.1 — 2026-10-07
 
 Stable release; Moodle plugin build `2026100705`.

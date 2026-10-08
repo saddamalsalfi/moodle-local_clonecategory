@@ -132,5 +132,10 @@ function xmldb_local_clonecategory_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026100705, 'local', 'clonecategory');
     }
 
+    if ($oldversion < 2026100800) {
+        // Release 1.3.2 with Moodle coding standard and CI fixes.
+        upgrade_plugin_savepoint(true, 2026100800, 'local', 'clonecategory');
+    }
+
     return true;
 }
