@@ -137,5 +137,10 @@ function xmldb_local_clonecategory_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026100800, 'local', 'clonecategory');
     }
 
+    if ($oldversion < 2026102100) {
+        // Release 1.4.0 with SQL path-based tree counting, batched progress and memory management.
+        upgrade_plugin_savepoint(true, 2026102100, 'local', 'clonecategory');
+    }
+
     return true;
 }

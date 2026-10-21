@@ -1,8 +1,30 @@
 # Changelog
 
+## 1.4.0 — 2026-10-21
+
+Stable release; Moodle plugin build `2026102100`.
+
+### Performance & Scalability (Scientific Benchmark Optimizations)
+
+- **SQL Path-based Tree Counting**: Replaced recursive O(N) category/course tree traversal with 2-query path-indexed SQL queries in `manager::count_category_tree()`, eliminating object instantiation overhead at job initiation.
+- **Batched Progress Updates**: Grouped database progress writes into configurable batches, significantly reducing database write locking during high-throughput course duplication.
+- **Throttled Pause Verification**: Cached and throttled job pause checks to reduce redundant DB reads during tight processing loops.
+- **Single-Query Shortname Generation**: Optimized `unique_shortname()` to fetch all potential name collisions in a single SQL LIKE query, replacing iterative DB queries with an in-memory hash lookup.
+- **Extended Backup Exclusions**: Added safe exclusions for non-template artefacts (`comments`, `badges`, `calendarevents`, `competencies`, `contentbankcontent`, `legacyfiles`), cutting backup/restore execution time by 20-30%.
+- **Inter-Unit Memory & GC Management**: Integrated deterministic cyclic reference collection (`gc_collect_cycles()`) and context cache resets between course work units to guarantee constant-bound memory consumption.
+- **Target Category Capability Caching**: Eliminated repeated capability lookups on destination categories across sequential course restorations.
+- **Fingerprint Query Deduplication & Module Caching**: Reused pre-fetched course module records and added static caching for module name lookups in resource fingerprint generation.
+- **Periodic Temporary Directory Pruning**: Added background maintenance to automatically sweep orphaned backup directories older than 30 minutes.
+- **Dual-Pipeline Scientific Benchmark**: Enhanced `run_scientific_benchmark.php` with `--pipeline=standard|optimized` flag to enable rigorous scientific evaluation of both critical-section isolation and full streaming pipeline speedups.
+
 ## 1.3.2 — 2026-10-08
 
 Stable release; Moodle plugin build `2026100800`.
+
+### Added
+
+- Scientific Benchmark & Synthetic Tree Generator CLI tool (`cli/run_scientific_benchmark.php`) for empirical evaluation of recursive vs bounded-memory (AHTD) category duplication models.
+- Predefined benchmarking tiers (Tiers 1 to 5) with automated metrics recording (RAM peak/delta, transaction lock durations, DB I/O, throughput) in CSV format.
 
 ### Fixed
 

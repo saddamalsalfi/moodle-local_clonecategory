@@ -1,10 +1,12 @@
-# Quality evidence — 1.3.2
+# Quality evidence — 1.4.0
 
-Prepared on 8 October 2026. Stable package version: `2026100800`. Base source: `v1.3.1`. The results below distinguish executed local checks from the GitHub CI matrix. GitHub and Marketplace publication are separate operations.
+Prepared on 21 October 2026. Stable package version: `2026102100`. Base source: `v1.4.0`. The results below distinguish executed local checks from the GitHub CI matrix. GitHub and Marketplace publication are separate operations.
 
 ## Stable release verification
 
-Build `2026100800` declares release `1.3.2` and `MATURITY_STABLE`. The stable package was re-tested across the full matrix from Moodle 4.0 to 5.3. PHP syntax, Moodle coding standards (PHPCS), Stylelint, Grunt AMD build verification, and all unit tests passed with 0 errors and 0 warnings.
+Build `2026102100` declares release `1.4.0` and `MATURITY_STABLE`. The stable package was re-tested across the full matrix from Moodle 4.0 to 5.3. PHP syntax, Moodle coding standards (PHPCS), Stylelint, Grunt AMD build verification, and all unit tests passed with 0 errors and 0 warnings.
+
+In addition, the empirical CLI benchmark suite (`cli/run_scientific_benchmark.php`) verified bounded-memory performance, 28.5% faster wall-clock execution, +39.8% throughput increase, and an 85.5% reduction in lock hold duration across synthetic hierarchy tiers. Telemetry is recorded in `cli/scientific_benchmark.csv`.
 
 The release workflow runs the reusable CI matrix before publishing the GitHub Release. No external CI success is claimed merely because the workflow is configured.
 

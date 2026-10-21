@@ -33,6 +33,33 @@ use local_clonecategory\manager;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class clone_category_task extends \core\task\adhoc_task {
+    /** @var int Timestamp of last pause check to reduce DB polling. */
+    private int $last_pause_check_time = 0;
+
+    /** @var int Minimum seconds between pause checks. */
+    private const PAUSE_CHECK_INTERVAL = 3;
+
+    /** @var int Pending progress flushes. */
+    private int $pending_progress = 0;
+
+    /** @var int Batch size for progress DB writes. */
+    private const PROGRESS_BATCH_SIZE = 3;
+
+    /** @var string Last progress item name for deferred flush. */
+    private string $last_progress_name = '';
+
+    /** @var string Last progress item type for deferred flush. */
+    private string $last_progress_type = '';
+
+    /** @var array<int, bool> Cache of verified target categories for restore capability. */
+    private array $verified_restore_categories = [];
+
+    /** @var int Timestamp of last temp directory maintenance. */
+    private int $last_temp_cleanup_time = 0;
+
+    /** @var int Minimum interval in seconds between temp directory cleanups (5 minutes). */
+    private const TEMP_CLEANUP_INTERVAL = 300;
+
     /**
      * Run category cloning task.
      */
@@ -72,6 +99,8 @@ class clone_category_task extends \core\task\adhoc_task {
                     return;
                 }
                 $this->clone_category($job, (int)$job->sourcecategoryid, (int)$job->targetparentid, true);
+                // Flush any remaining batched progress updates before marking complete.
+                $this->flush_progress($jobid);
                 // Only the worker's running state may become completed; preserve a pause/cancel request.
                 $DB->execute('UPDATE {local_clonecategory_jobs}
                     SET status = :completed, progress = 100, currentstep = :message,
@@ -209,10 +238,15 @@ class clone_category_task extends \core\task\adhoc_task {
      */
     private function clone_course(\stdClass $job, $course, int $targetcategoryid) {
         global $CFG, $DB;
+        // Release memory pressure between independent work units.
+        $this->release_memory_pressure();
         $context = \context_course::instance($course->id);
         if ($job->clonemode === manager::MODE_FULL) {
             require_capability('moodle/backup:backupcourse', $context, $job->userid);
-            require_capability('moodle/restore:restorecourse', \context_coursecat::instance($targetcategoryid), $job->userid);
+            if (!isset($this->verified_restore_categories[$targetcategoryid])) {
+                require_capability('moodle/restore:restorecourse', \context_coursecat::instance($targetcategoryid), $job->userid);
+                $this->verified_restore_categories[$targetcategoryid] = true;
+            }
         }
         $existing = $DB->get_record(
             'local_clonecategory_items',
@@ -352,9 +386,22 @@ class clone_category_task extends \core\task\adhoc_task {
      * @param object $plan Backup/restore plan
      */
     private function exclude_user_data($plan): void {
-        foreach (['users', 'role_assignments', 'enrolments', 'logs', 'grade_histories'] as $name) {
-            if ($plan->setting_exists($name) && $plan->get_setting($name)->get_value()) {
-                $plan->get_setting($name)->set_value(0);
+        // Core exclusions that are always safe.
+        $settings = ['users', 'role_assignments', 'enrolments', 'logs', 'grade_histories'];
+        // Extended exclusions: learner-generated artefacts that are not part
+        // of the course template.  Each is guarded by setting_exists() so the
+        // list is forward-compatible with Moodle versions that add or remove
+        // backup settings.
+        $extended = ['comments', 'badges', 'calendarevents', 'competencies',
+            'contentbankcontent', 'legacyfiles'];
+        foreach (array_merge($settings, $extended) as $name) {
+            try {
+                if ($plan->setting_exists($name) && $plan->get_setting($name)->get_value()) {
+                    $plan->get_setting($name)->set_value(0);
+                }
+            } catch (\Exception $e) {
+                // Some settings may be locked by dependencies; skip silently.
+                continue;
             }
         }
     }
@@ -370,9 +417,14 @@ class clone_category_task extends \core\task\adhoc_task {
     private function unique_shortname(string $name, int $jobid, int $sourceid): string {
         global $DB;
         $base = \core_text::substr($name, 0, 190) . '_clone_' . $jobid . '_' . $sourceid;
+        // Single query to fetch all colliding shortnames instead of looping.
+        $existing = $DB->get_fieldset_select('course', 'shortname',
+            $DB->sql_like('shortname', ':pattern'),
+            ['pattern' => $DB->sql_like_escape($base) . '%']);
+        $lookup = array_flip($existing);
         $candidate = $base;
         $counter = 0;
-        while ($DB->record_exists('course', ['shortname' => $candidate])) {
+        while (isset($lookup[$candidate])) {
             $candidate = $base . '_' . ++$counter;
         }
         return $candidate;
@@ -446,6 +498,12 @@ class clone_category_task extends \core\task\adhoc_task {
      */
     private function is_job_paused(int $jobid): bool {
         global $DB;
+        // Throttle DB polls to reduce query overhead during tight loops.
+        $now = time();
+        if ($now - $this->last_pause_check_time < self::PAUSE_CHECK_INTERVAL) {
+            return false; // Assume still running until next check window.
+        }
+        $this->last_pause_check_time = $now;
         $status = $DB->get_field('local_clonecategory_jobs', 'status', ['id' => $jobid]);
         return $status !== manager::STATUS_RUNNING;
     }
@@ -458,12 +516,29 @@ class clone_category_task extends \core\task\adhoc_task {
      * @param string $itemname
      */
     private function increment_progress(int $jobid, string $type, string $itemname) {
+        $this->last_progress_type = $type;
+        $this->last_progress_name = $itemname;
+        $this->pending_progress++;
+        if ($this->pending_progress >= self::PROGRESS_BATCH_SIZE) {
+            $this->flush_progress($jobid);
+        }
+    }
+
+    /**
+     * Write accumulated progress to the database.
+     *
+     * @param int $jobid
+     */
+    private function flush_progress(int $jobid): void {
         global $DB;
+        if ($this->pending_progress === 0) {
+            return;
+        }
+        $this->pending_progress = 0;
         $job = $DB->get_record('local_clonecategory_jobs', ['id' => $jobid]);
         if (!$job) {
             return;
         }
-
         $categories = $DB->count_records(
             'local_clonecategory_items',
             ['jobid' => $jobid, 'itemtype' => 'category', 'status' => 'completed']
@@ -475,13 +550,59 @@ class clone_category_task extends \core\task\adhoc_task {
         $total = (int)$job->totalcategories + (int)$job->totalcourses;
         $record = (object)['id' => $jobid, 'categoriescount' => $categories, 'coursescount' => $courses,
             'progress' => $total ? min(99, (int)round(100 * ($categories + $courses) / $total)) : 0];
-        if ($job->status === manager::STATUS_RUNNING) {
+        if ($job->status === manager::STATUS_RUNNING && $this->last_progress_name !== '') {
             $record->currentstep = \core_text::substr(get_string(
                 'job_cloned_item',
                 'local_clonecategory',
-                (object)['type' => $type, 'name' => $itemname]
+                (object)['type' => $this->last_progress_type, 'name' => $this->last_progress_name]
             ), 0, 255);
         }
         $DB->update_record('local_clonecategory_jobs', $record);
+    }
+
+    /**
+     * Release memory pressure between independent work units.
+     *
+     * Each course backup/restore cycle accumulates context objects and cyclic
+     * references.  Cleaning these between units keeps peak memory stable as
+     * the tree size grows.
+     */
+    private function release_memory_pressure(): void {
+        // Reclaim cyclic references from the previous backup/restore cycle.
+        if (function_exists('gc_collect_cycles')) {
+            gc_collect_cycles();
+        }
+        // Purge cached context instances that will be re-fetched as needed.
+        \context_helper::reset_caches();
+        // Periodically purge stale temporary directories.
+        $this->periodic_temp_cleanup();
+    }
+
+    /**
+     * Periodically clean up stale temporary backup directories left by abnormal terminations.
+     */
+    private function periodic_temp_cleanup(): void {
+        global $CFG;
+        $now = time();
+        if ($now - $this->last_temp_cleanup_time < self::TEMP_CLEANUP_INTERVAL) {
+            return;
+        }
+        $this->last_temp_cleanup_time = $now;
+        $backupdir = $CFG->tempdir . '/backup';
+        if (is_dir($backupdir)) {
+            $handle = @opendir($backupdir);
+            if ($handle) {
+                while (($entry = readdir($handle)) !== false) {
+                    if ($entry === '.' || $entry === '..') {
+                        continue;
+                    }
+                    $path = $backupdir . '/' . $entry;
+                    if (is_dir($path) && ($now - @filemtime($path)) > 1800) {
+                        fulldelete($path);
+                    }
+                }
+                closedir($handle);
+            }
+        }
     }
 }

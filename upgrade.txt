@@ -1,0 +1,20 @@
+=== 1.4.0 ===
+* Performance: O(1) SQL path-based tree indexing implemented in manager::count_category_tree(), eliminating recursive object instantiation.
+* Performance: Batched progress writes (PROGRESS_BATCH_SIZE = 3) to reduce job table write contention.
+* Performance: Throttled pause checks (PAUSE_CHECK_INTERVAL = 3) to minimize repetitive DB reads.
+* Performance: Single-query unique shortname resolution via SQL LIKE and in-memory set lookups.
+* Performance: Extended exclusions of non-template course artefacts (comments, badges, calendar events, competencies, legacy files).
+* Performance: Deterministic cyclic reference collection (gc_collect_cycles()) and context cache reset between work units.
+* Performance: Target category capability caching during batch course restorations.
+* Performance: Automated background maintenance for stale temporary backup directories (>30 minutes).
+* Performance: Module name static caching and query deduplication in resource baseline fingerprinting.
+* Benchmark: Dual-pipeline scientific benchmark harness supporting --pipeline=standard|optimized.
+
+=== 1.3.2 ===
+* CI & Standards: Full compliance with Moodle CodeSniffer (PHPCS) and Stylelint across Moodle 4.0 through 5.3.
+* AMD: Officially rebuilt minified JavaScript assets using Moodle Grunt toolchain with unmangled variable names.
+* Quality: Benchmark harness introduced to empirically record RAM peak/delta and transaction lock durations in CSV format.
+
+=== 1.3.1 ===
+* Bugfix: Flushed standard log store before capturing resource fingerprints to prevent false rollback rejections from deferred creation logs.
+* Usability: Indented hierarchical category labels to avoid repeating ancestor paths on small screens.

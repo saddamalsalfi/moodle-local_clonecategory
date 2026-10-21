@@ -13,4 +13,19 @@
 
 Settings mode produces empty courses. Full-content mode excludes learner enrolments, grades and submissions. Native selects remain available if JavaScript is disabled. Phone and Arabic/RTL layouts use the same selection rules.
 
-For a settings-only preview job blocked after merely viewing a course, update to 1.3.1 and retry rollback of the same eligible job. The buffered-log correction preserves the original fingerprint; it cannot recreate a missing historical baseline.
+For a settings-only preview job blocked after merely viewing a course, update to 1.4.0 and retry rollback of the same eligible job. The buffered-log correction preserves the original fingerprint; it cannot recreate a missing historical baseline.
+
+## Scientific Benchmark Tool
+
+To evaluate duplication performance and measure lock durations, throughput, and memory consumption across synthetic trees:
+
+```bash
+php local/clonecategory/cli/run_scientific_benchmark.php --tier=1 --runs=20 --pipeline=optimized
+```
+
+Options include:
+- `-t, --tier=1..5`: Benchmark complexity presets (Tier 1: 5 courses up to Tier 5: 100 courses).
+- `-r, --runs=N`: Number of repetitions per mode (default: 20).
+- `-m, --mode=both|ahtd|baseline`: Modes to evaluate (default: both).
+- `-p, --pipeline=standard|optimized`: Standard identical isolation or full optimized AHTD streaming pipeline.
+- `-o, --output=filename.csv`: Output CSV file (default: scientific_benchmark.csv).

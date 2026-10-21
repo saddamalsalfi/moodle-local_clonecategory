@@ -2,11 +2,11 @@
 
 Clone Moodle category hierarchies using Moodle's background task, course creation and backup/restore APIs.
 
-## Version 1.3.2
+## Version 1.4.0
 
-Stable release of the three clone scopes, responsive category selectors and safe background operations. See [release notes](RELEASE_NOTES.md), [change history](CHANGELOG.md) and [validation evidence](QA.md).
+Stable release featuring significant performance optimizations, bounded-memory execution, zero-archive streaming pipeline, and dual-pipeline scientific benchmark suite. See [release notes](RELEASE_NOTES.md), [change history](CHANGELOG.md) and [validation evidence](QA.md).
 
-Download the Moodle installation ZIP from the [v1.3.2 release](https://github.com/saddamalsalfi/moodle-local_clonecategory/releases/tag/v1.3.2). GitHub-generated tag archives are source archives: extract and rename their root folder to `clonecategory` before manual installation.
+Download the Moodle installation ZIP from the [v1.4.0 release](https://github.com/saddamalsalfi/moodle-local_clonecategory/releases/tag/v1.4.0). GitHub-generated tag archives are source archives: extract and rename their root folder to `clonecategory` before manual installation.
 
 ### Rollback correction
 
@@ -56,7 +56,7 @@ Install the ZIP into `local/clonecategory`, or `public/local/clonecategory` in M
 
 Minimum declared Moodle version remains 4.0. This session's actual test results are recorded in `QA.md`; the declared range inherited from the previous release is not evidence that every combination has passed. The CI workflow covers the declared Moodle branches with appropriate PHP versions, MariaDB, PostgreSQL, PHPUnit, PHP lint, Moodle coding/doc checks, upgrade savepoints, validation and JavaScript checks. CI must run on GitHub before release; a configured workflow is not a successful CI run.
 
-Run local selector tests with `node tests/category_tree_test.cjs`. Run integration tests within a configured Moodle PHPUnit environment using the `local_clonecategory_testsuite` suite. Build AMD modules using Moodle's JavaScript toolchain after changing sources.
+Run local selector tests with `node tests/category_tree_test.cjs`. Run integration tests within a configured Moodle PHPUnit environment using the `local_clonecategory_testsuite` suite. Run the empirical scientific benchmark suite via CLI with `php local/clonecategory/cli/run_scientific_benchmark.php`. Build AMD modules using Moodle's JavaScript toolchain after changing sources.
 
 ### Marketplace badges
 

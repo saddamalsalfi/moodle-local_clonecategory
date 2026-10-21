@@ -531,9 +531,15 @@ class manager {
         $data[] = $DB->get_records_sql("SELECT id, eventname, userid, objectid, timecreated
             FROM {logstore_standard_log} WHERE courseid = :courseid AND crud IN ('c', 'u', 'd')
             AND eventname <> :created ORDER BY id", ['courseid' => $id, 'created' => '\\core\\event\\course_created']);
-        foreach ($DB->get_records('course_modules', ['course' => $id], 'id') as $cm) {
-            $module = $DB->get_field('modules', 'name', ['id' => $cm->module], MUST_EXIST);
-            $data[] = $DB->get_record($module, ['id' => $cm->instance]);
+        if (!empty($data[2])) {
+            static $modulenames = null;
+            if ($modulenames === null) {
+                $modulenames = $DB->get_records_menu('modules', null, '', 'id, name');
+            }
+            foreach ($data[2] as $cm) {
+                $module = $modulenames[$cm->module] ?? $DB->get_field('modules', 'name', ['id' => $cm->module], MUST_EXIST);
+                $data[] = $DB->get_record($module, ['id' => $cm->instance]);
+            }
         }
         $data[] = $DB->get_records_sql(
             'SELECT f.* FROM {files} f JOIN {context} c ON c.id = f.contextid
@@ -737,13 +743,19 @@ class manager {
      * @return array Counts
      */
     public static function count_category_tree(int $sourcecatid): array {
-        $category = \core_course_category::get($sourcecatid);
-        $counts = ['categories' => 1, 'courses' => count($category->get_courses(['limit' => 0]))];
-        foreach ($category->get_children() as $child) {
-            $subcounts = self::count_category_tree($child->id);
-            $counts['categories'] += $subcounts['categories'];
-            $counts['courses'] += $subcounts['courses'];
+        global $DB;
+        $cat = $DB->get_record('course_categories', ['id' => $sourcecatid], 'id, path', MUST_EXIST);
+        $escaped = $DB->sql_like_escape($cat->path);
+        // One query counts every descendant category using the materialised path.
+        $catids = $DB->get_fieldset_select('course_categories', 'id',
+            "path = :exact OR path LIKE :pattern",
+            ['exact' => $cat->path, 'pattern' => $escaped . '/%']);
+        if (empty($catids)) {
+            return ['categories' => 0, 'courses' => 0];
         }
-        return $counts;
+        // One query counts every course across the entire subtree.
+        [$insql, $params] = $DB->get_in_or_equal($catids, SQL_PARAMS_NAMED);
+        $courses = $DB->count_records_select('course', "category $insql", $params);
+        return ['categories' => count($catids), 'courses' => $courses];
     }
 }

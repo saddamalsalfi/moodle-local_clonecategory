@@ -24,9 +24,9 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->version   = 2026100800;
+$plugin->version   = 2026102100;
 $plugin->requires  = 2022041900; // Moodle 4.0.
 $plugin->component = 'local_clonecategory';
-$plugin->release   = '1.3.2';
+$plugin->release   = '1.4.0';
 $plugin->maturity  = MATURITY_STABLE;
 $plugin->supported = [400, 503]; // Compatibility range; validate each release before publishing.
