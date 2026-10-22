@@ -1,0 +1,23 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it using the metadata from this file."
+type: software
+title: "local_clonecategory: Advanced Category & Course Tree Duplication Plugin for Moodle"
+abstract: "A high-performance Moodle local plugin enabling atomic, pause/resume-supported hierarchical duplication of course categories and subtrees with integrated rollback protection and reproducible empirical benchmarking."
+authors:
+  - family-names: "Al-Slfi"
+    given-names: "Saddam"
+    orcid: "https://orcid.org/0000-0002-4006-0193"
+    affiliation: "Queen Arwa University"
+version: 1.4.0
+doi: 10.5281/zenodo.23578360
+date-released: 2026-10-22
+url: "https://github.com/saddamalsalfi/moodle-local_clonecategory"
+repository-code: "https://github.com/saddamalsalfi/moodle-local_clonecategory"
+license: GPL-3.0-or-later
+keywords:
+  - "moodle"
+  - "moodle-plugin"
+  - "category-duplication"
+  - "course-cloning"
+  - "benchmarking"
+  - "higher-education"
