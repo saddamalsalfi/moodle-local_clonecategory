@@ -56,7 +56,48 @@ Install the ZIP into `local/clonecategory`, or `public/local/clonecategory` in M
 
 Minimum declared Moodle version remains 4.0. This session's actual test results are recorded in `QA.md`; the declared range inherited from the previous release is not evidence that every combination has passed. The CI workflow covers the declared Moodle branches with appropriate PHP versions, MariaDB, PostgreSQL, PHPUnit, PHP lint, Moodle coding/doc checks, upgrade savepoints, validation and JavaScript checks. CI must run on GitHub before release; a configured workflow is not a successful CI run.
 
-Run local selector tests with `node tests/category_tree_test.cjs`. Run integration tests within a configured Moodle PHPUnit environment using the `local_clonecategory_testsuite` suite. Run the empirical scientific benchmark suite via CLI with `php local/clonecategory/cli/run_scientific_benchmark.php`. Build AMD modules using Moodle's JavaScript toolchain after changing sources.
+Run local selector tests with `node tests/category_tree_test.cjs`. Run integration tests within a configured Moodle PHPUnit environment using the `local_clonecategory_testsuite` suite. Build AMD modules using Moodle's JavaScript toolchain after changing sources.
+
+### Scientific benchmark protocol
+
+Run the empirical benchmark from the Moodle root in a quiet, disposable
+environment. For a publishable comparison, use the `standard` pipeline in
+both modes, preserve the CSV and its JSON metadata sidecar, and run at least
+30 paired repetitions per tier after three verified warm-up iterations:
+
+```powershell
+New-Item -ItemType Directory -Force -Path local/clonecategory/cli/results | Out-Null
+$output = 'local/clonecategory/cli/results/tier1.csv'
+
+php local/clonecategory/cli/run_scientific_benchmark.php `
+  --tier=1 --mode=both --pipeline=standard --warmups=3 --runs=30 `
+  --seed=20261020 "--output=$output"
+```
+
+The runner alternates mode order by logical run number, records the actual
+order and pipeline in every CSV row, and rejects appending to a CSV with an
+older schema. It writes environment, plugin, configuration, and command-line
+metadata to `<output>.metadata.json`. The benchmark's lock metrics are Moodle
+Lock API wait/hold measurements, not database transaction durations.
+
+For the strongest isolation from PHP request-local state, perform warm-up
+once and then execute every paired repetition in a fresh PHP process:
+
+```powershell
+$runner = 'local/clonecategory/cli/run_scientific_benchmark.php'
+$output = 'local/clonecategory/cli/results/tier1-fresh-process.csv'
+php $runner --tier=1 --mode=both --pipeline=standard --runs=0 --warmups=3 `
+  "--output=$output" "--metadata=$output.warmup.metadata.json"
+1..30 | ForEach-Object {
+    php $runner --tier=1 --mode=both --pipeline=standard --runs=1 `
+      --run-offset=($_ - 1) --seed=20261020 "--output=$output" `
+      "--metadata=$output.run$_.metadata.json"
+}
+```
+
+Do not mix standard and optimized-pipeline rows in one analysis. Report raw
+CSV rows, the JSON sidecar, the exact plugin commit, hardware and database
+configuration, and paired confidence intervals.
 
 ### Marketplace badges
 

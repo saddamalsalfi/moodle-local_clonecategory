@@ -1,10 +1,22 @@
 <?php
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
 /**
- * Scientific Benchmark Suite for local_clonecategory
- * ==================================================
+ * Scientific Benchmark Suite for local_clonecategory.
  *
- * Purpose
- * -------
  * Reproducible, functionally-equivalent benchmark of:
  *
  *   BASELINE:
@@ -16,8 +28,7 @@
  *      The hierarchy is prepared first and each course duplication is
  *      processed as an independent protected work unit with its own lock.
  *
- * Important scientific design rules
- * ---------------------------------
+ * Important scientific design rules:
  * 1. Both modes perform the SAME course operation: Moodle backup + restore.
  * 2. No artificial memory payload is injected into either mode.
  * 3. "Lock" means Moodle Lock API hold time, not transaction duration.
@@ -27,17 +38,18 @@
  * 7. Functional verification is performed after every successful run.
  * 8. The benchmark never claims asymptotic O(1) complexity from empirical data.
  *
- * Recommended scientific protocol
- * -------------------------------
- * - Use --runs=20 or more for publication data.
+ * Recommended scientific protocol:
+ * - Use --warmups=3 and --runs=30 or more for publication data.
  * - Run each tier in a clean/quiet Moodle environment.
  * - Prefer one CLI process per run for final publication measurements.
- * - Keep database engine, PHP version, Moodle version and server load fixed.
+ * - Keep database engine, PHP version, Moodle version, configuration and
+ *   server load fixed; retain the JSON metadata file with the CSV.
  *
  * Moodle 5.2 compatible design.
  *
- * Place at:
- *   local/clonecategory/cli/run_scientific_benchmark.php
+ * @package    local_clonecategory
+ * @copyright  2026 Saddam Al-Slfi
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 define('CLI_SCRIPT', true);
@@ -53,12 +65,9 @@ global $CFG, $DB, $USER;
 $admin = get_admin();
 $USER = $admin;
 
-/**
- * Benchmark tier presets.
- *
- * These values intentionally retain the five-tier structure used by the
- * original experiment while making the course counts explicit and stable.
- */
+// Benchmark tier presets.
+// These values intentionally retain the five-tier structure used by the
+// original experiment while making the course counts explicit and stable.
 $tiers = [
     1 => ['depth' => 2, 'branch' => 2, 'courses' => 5, 'label' => 'Tier1_Small'],
     2 => ['depth' => 3, 'branch' => 2, 'courses' => 15, 'label' => 'Tier2_Medium'],
@@ -67,7 +76,7 @@ $tiers = [
     5 => ['depth' => 6, 'branch' => 2, 'courses' => 100, 'label' => 'Tier5_Stress'],
 ];
 
-list($options, $unrecognized) = cli_get_params([
+[$options, $unrecognized] = cli_get_params([
     'help' => false,
     'tier' => 1,
     'depth' => 0,
@@ -82,6 +91,9 @@ list($options, $unrecognized) = cli_get_params([
     'verify' => true,
     'seed' => 20261020,
     'lock-timeout' => 60,
+    'warmups' => 0,
+    'run-offset' => 0,
+    'metadata' => '',
 ], [
     'h' => 'help',
     't' => 'tier',
@@ -103,21 +115,27 @@ Options:
       --depth          Custom tree depth; overrides tier
       --branch         Custom branch factor; overrides tier
       --courses        Custom course count; overrides tier
-  -r, --runs           Repetitions per mode (default: 20)
+  -r, --runs           Recorded repetitions per mode (default: 20; 0 is
+                        permitted only when --warmups is positive)
   -m, --mode           ahtd | baseline | both (default: both)
   -p, --pipeline       standard | optimized (default: standard)
                        standard  = strict isolation (identical course duplication)
-                       optimized = full AHTD pipeline (zero-archive streaming + selective filtering)
+                       optimized = zero-archive streaming + selective filtering
+                                   in both modes
   -o, --output         CSV output file (default: scientific_benchmark.csv)
       --cleanup        Delete generated clone after each run
       --keep-source    Keep generated synthetic source tree
       --verify         Verify functional equivalence after each run
       --seed            Deterministic random seed (default: 20261020)
       --lock-timeout    Moodle Lock API timeout in seconds (default: 60)
+      --warmups         Unrecorded, verified warm-up iterations (default: 0)
+      --run-offset      Number of preceding runs when using one PHP process
+                        per measured run (default: 0)
+      --metadata        JSON metadata path (default: <output>.metadata.json)
 
 Examples:
-  php local/clonecategory/cli/run_scientific_benchmark.php --tier=1 --runs=20
-  php local/clonecategory/cli/run_scientific_benchmark.php --tier=5 --runs=30 --mode=both
+  php local/clonecategory/cli/run_scientific_benchmark.php --tier=1 --warmups=3 --runs=30
+  php local/clonecategory/cli/run_scientific_benchmark.php --tier=5 --warmups=3 --runs=30 --mode=both
 
 Scientific interpretation:
   baseline = synchronous monolithic critical section
@@ -142,14 +160,24 @@ if (!isset($tiers[$tierid])) {
 $depth = (int) $options['depth'] > 0 ? (int) $options['depth'] : $tiers[$tierid]['depth'];
 $branch = (int) $options['branch'] > 0 ? (int) $options['branch'] : $tiers[$tierid]['branch'];
 $courses = (int) $options['courses'] > 0 ? (int) $options['courses'] : $tiers[$tierid]['courses'];
-$runs = max(1, (int) $options['runs']);
+$runs = max(0, (int) $options['runs']);
 $seed = (int) $options['seed'];
 $locktimeout = max(1, (int) $options['lock-timeout']);
+$warmups = max(0, (int) $options['warmups']);
+$runoffset = max(0, (int) $options['run-offset']);
 $mode = strtolower(trim($options['mode']));
+$pipeline = strtolower(trim((string) $options['pipeline']));
 $outfile = $options['output'];
+$metadatafile = trim((string) $options['metadata']);
+if ($metadatafile === '') {
+    $metadatafile = $outfile . '.metadata.json';
+}
 
 if (!in_array($mode, ['ahtd', 'baseline', 'both'], true)) {
     cli_error("Invalid --mode. Use 'ahtd', 'baseline', or 'both'.");
+}
+if (!in_array($pipeline, ['standard', 'optimized'], true)) {
+    cli_error('Invalid --pipeline. Use standard or optimized.');
 }
 if ($depth < 1 || $depth > 50) {
     cli_error('Depth must be between 1 and 50.');
@@ -160,22 +188,27 @@ if ($branch < 1 || $branch > 20) {
 if ($courses < 1 || $courses > 10000) {
     cli_error('Courses must be between 1 and 10000.');
 }
+if ($runs === 0 && $warmups === 0) {
+    cli_error('Specify at least one recorded run or one warm-up iteration.');
+}
 
 mt_srand($seed);
 
 /**
  * High-resolution monotonic timer.
+ *
+ * @return float Current timestamp in seconds with nanosecond precision.
  */
-function scientific_now(): float
-{
+function scientific_now(): float {
     return hrtime(true) / 1e9;
 }
 
 /**
  * Reset request-local Moodle state between runs.
+ *
+ * @return void
  */
-function scientific_reset_runtime_state(): void
-{
+function scientific_reset_runtime_state(): void {
     global $DB;
 
     if (function_exists('gc_collect_cycles')) {
@@ -197,21 +230,61 @@ function scientific_reset_runtime_state(): void
 
 /**
  * Return a compact runtime fingerprint for reproducibility.
+ *
+ * @return array Runtime and environment metadata.
  */
-function scientific_environment_fingerprint(): array
-{
+function scientific_environment_fingerprint(): array {
     global $CFG, $DB;
 
     $dbtype = method_exists($DB, 'get_dbfamily') ? $DB->get_dbfamily() : 'unknown';
+    $dbserver = method_exists($DB, 'get_server_info') ? $DB->get_server_info() : 'unknown';
+    $version = null;
+    $release = null;
+    $branch = null;
+    $coreversionfile = $CFG->dirroot . '/version.php';
+
+    if (is_readable($coreversionfile)) {
+        require($coreversionfile);
+    }
+
+    $moodlerelease = defined('MOODLE_RELEASE')
+        ? MOODLE_RELEASE
+        : (is_string($release) && $release !== '' ? $release : 'unknown');
+    $moodleversion = defined('MOODLE_VERSION')
+        ? (string) MOODLE_VERSION
+        : (is_numeric($version) ? (string) $version : 'unknown');
 
     return [
-        'moodle_release' => defined('MOODLE_RELEASE') ? MOODLE_RELEASE : 'unknown',
-        'moodle_version' => defined('MOODLE_VERSION') ? (string) MOODLE_VERSION : 'unknown',
+        'moodle_release' => $moodlerelease,
+        'moodle_version' => $moodleversion,
+        'moodle_branch' => is_string($branch) && $branch !== '' ? $branch : 'unknown',
         'php_version' => PHP_VERSION,
         'php_sapi' => PHP_SAPI,
         'os' => PHP_OS_FAMILY,
+        'os_release' => php_uname('r'),
+        'architecture' => php_uname('m'),
         'db_family' => $dbtype,
+        'db_server' => $dbserver,
         'memory_limit' => ini_get('memory_limit'),
+    ];
+}
+
+/**
+ * Return the installed plugin revision without requiring a Git working tree.
+ *
+ * @return array Plugin version details.
+ */
+function scientific_plugin_fingerprint(): array {
+    global $CFG;
+
+    $plugin = new stdClass();
+    require($CFG->dirroot . '/local/clonecategory/version.php');
+
+    return [
+        'component' => $plugin->component ?? 'local_clonecategory',
+        'release' => $plugin->release ?? 'unknown',
+        'version' => isset($plugin->version) ? (string) $plugin->version : 'unknown',
+        'requires' => isset($plugin->requires) ? (string) $plugin->requires : 'unknown',
     ];
 }
 
@@ -220,6 +293,12 @@ function scientific_environment_fingerprint(): array
  *
  * The source tree is identical for both modes within a run. A fresh source
  * tree is created for each run so clone leftovers cannot contaminate results.
+ *
+ * @param int $depth Maximum depth of the category hierarchy.
+ * @param int $branch Number of child categories per branch.
+ * @param int $coursecount Total number of courses to create across the tree.
+ * @param int $runseed Random seed for reproducible hierarchy generation.
+ * @return stdClass Object containing root_id, category_count, course_count, and token.
  */
 function scientific_build_synthetic_tree(
     int $depth,
@@ -297,9 +376,11 @@ function scientific_build_synthetic_tree(
  *
  * Used only for verification and cleanup; it is not part of the measured
  * duplication critical path.
+ *
+ * @param int $rootid Root category ID.
+ * @return array List of category IDs including the root and descendants.
  */
-function scientific_collect_category_ids(int $rootid): array
-{
+function scientific_collect_category_ids(int $rootid): array {
     global $DB;
 
     $result = [$rootid];
@@ -314,9 +395,11 @@ function scientific_collect_category_ids(int $rootid): array
 
 /**
  * Collect all source course IDs under a category tree.
+ *
+ * @param int $rootid Root category ID.
+ * @return array List of course IDs.
  */
-function scientific_collect_course_ids(int $rootid): array
-{
+function scientific_collect_course_ids(int $rootid): array {
     global $DB;
 
     $categoryids = scientific_collect_category_ids($rootid);
@@ -336,25 +419,42 @@ function scientific_collect_course_ids(int $rootid): array
  * The fingerprint is based on:
  *   - number of categories
  *   - number of courses
- *   - course fullname/shortname
- *   - course category relation
+ *   - relative category-depth distribution
+ *   - course category depth
  *   - section counts
  *
  * This is intentionally lightweight and independent of auto-generated IDs.
+ *
+ * @param int $rootid Root category ID.
+ * @return array Fingerprint summary and SHA-256 hash.
  */
-function scientific_tree_fingerprint(int $rootid): array
-{
+function scientific_tree_fingerprint(int $rootid): array {
     global $DB;
 
     $categoryids = scientific_collect_category_ids($rootid);
 
-    $categoryrows = [];
+    $categories = [];
     foreach ($categoryids as $categoryid) {
         $record = $DB->get_record('course_categories', ['id' => $categoryid], 'id,parent,name', MUST_EXIST);
-        $categoryrows[] = [
-            'name' => (string) $record->name,
-            'parent_exists' => in_array((int) $record->parent, $categoryids, true) || (int) $record->parent === 0,
-        ];
+        $categories[(int) $record->id] = (int) $record->parent;
+    }
+
+    $depths = [];
+    $resolvedepth = static function (int $categoryid) use (&$resolvedepth, &$depths, $categories, $rootid): int {
+        if ($categoryid === $rootid) {
+            return 0;
+        }
+        if (isset($depths[$categoryid])) {
+            return $depths[$categoryid];
+        }
+        if (!isset($categories[$categoryid]) || !isset($categories[$categories[$categoryid]])) {
+            throw new \RuntimeException('Category tree is not rooted at the expected category.');
+        }
+        $depths[$categoryid] = $resolvedepth($categories[$categoryid]) + 1;
+        return $depths[$categoryid];
+    };
+    foreach (array_keys($categories) as $categoryid) {
+        $depths[$categoryid] = $resolvedepth($categoryid);
     }
 
     [$insql, $params] = $DB->get_in_or_equal($categoryids, SQL_PARAMS_NAMED);
@@ -371,34 +471,31 @@ function scientific_tree_fingerprint(int $rootid): array
         $sectioncount = $DB->count_records('course_sections', ['course' => $course->id]);
 
         $courserows[] = [
-            'category' => (int) $course->category,
-            'fullname' => (string) $course->fullname,
-            'shortname' => (string) $course->shortname,
+            'category_depth' => $depths[(int) $course->category],
             'sections' => (int) $sectioncount,
         ];
     }
 
-    usort($categoryrows, static function (array $a, array $b): int {
-        return strcmp($a['name'], $b['name']);
-    });
+    $categorydepths = array_values($depths);
+    sort($categorydepths, SORT_NUMERIC);
 
     usort($courserows, static function (array $a, array $b): int {
-        return strcmp($a['shortname'], $b['shortname']);
+        return [$a['category_depth'], $a['sections']] <=> [$b['category_depth'], $b['sections']];
     });
 
     // Category IDs are intentionally excluded from the final hash because
-    // clone IDs are expected to differ.
+    // clone IDs and generated names are expected to differ.
     $normalized = [
-        'category_count' => count($categoryrows),
+        'category_count' => count($categories),
         'course_count' => count($courserows),
-        'categories' => $categoryrows,
+        'category_depths' => $categorydepths,
         'courses' => $courserows,
     ];
 
     $json = json_encode($normalized, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 
     return [
-        'category_count' => count($categoryrows),
+        'category_count' => count($categories),
         'course_count' => count($courserows),
         'hash' => hash('sha256', (string) $json),
     ];
@@ -406,9 +503,11 @@ function scientific_tree_fingerprint(int $rootid): array
 
 /**
  * Delete a generated category tree safely.
+ *
+ * @param int $rootid Root category ID to delete.
+ * @return void
  */
-function scientific_delete_tree(int $rootid): void
-{
+function scientific_delete_tree(int $rootid): void {
     if ($rootid <= 0) {
         return;
     }
@@ -435,9 +534,12 @@ function scientific_delete_tree(int $rootid): void
  *
  * Moodle's documented Lock API is used rather than treating a DB transaction
  * as a lock.
+ *
+ * @param string $resource Resource identifier for the lock.
+ * @param int $timeout Timeout in seconds before giving up.
+ * @return array Array containing lock, wait_sec, and acquired_at.
  */
-function scientific_acquire_lock(string $resource, int $timeout): array
-{
+function scientific_acquire_lock(string $resource, int $timeout): array {
     $factory = \core\lock\lock_config::get_lock_factory('local_clonecategory_scientific_benchmark');
 
     $waitstart = scientific_now();
@@ -467,6 +569,13 @@ function scientific_acquire_lock(string $resource, int $timeout): array
  * This is intentionally identical for BASELINE and AHTD so the benchmark
  * compares architecture/critical-section behavior rather than different
  * amounts of work.
+ *
+ * @param int $sourcecourseid Source course ID to duplicate.
+ * @param string $fullname Target course full name base.
+ * @param string $shortname Target course short name base.
+ * @param int $targetcategoryid Target category ID to place the duplicate into.
+ * @param string $suffix Suffix to distinguish baseline vs ahtd duplicates.
+ * @return int Newly created course ID.
  */
 function scientific_duplicate_course(
     int $sourcecourseid,
@@ -482,7 +591,7 @@ function scientific_duplicate_course(
     $bc = null;
     $rc = null;
     $file = null;
-    $restoreDir = null;
+    $restoredir = null;
 
     try {
         $bc = new \backup_controller(
@@ -501,9 +610,9 @@ function scientific_duplicate_course(
         $bc->destroy();
         $bc = null;
 
-        $restoreDir = \restore_controller::get_tempdir_name($sourcecourseid, $admin->id);
+        $restoredir = \restore_controller::get_tempdir_name($sourcecourseid, $admin->id);
         $packer = get_file_packer('application/vnd.moodle.backup');
-        $file->extract_to_pathname($packer, $CFG->tempdir . '/backup/' . $restoreDir);
+        $file->extract_to_pathname($packer, $CFG->tempdir . '/backup/' . $restoredir);
         $file->delete();
         $file = null;
         unset($packer, $results);
@@ -515,7 +624,7 @@ function scientific_duplicate_course(
         );
 
         $rc = new \restore_controller(
-            $restoreDir,
+            $restoredir,
             $newcourseid,
             \backup::INTERACTIVE_NO,
             \backup::MODE_SAMESITE,
@@ -529,24 +638,26 @@ function scientific_duplicate_course(
         $rc = null;
 
         return (int) $newcourseid;
-
     } catch (\Throwable $e) {
         if ($rc !== null) {
             try {
                 $rc->destroy();
             } catch (\Throwable $ignored) {
+                // Destroy may fail if controller is in an inconsistent state; safe to ignore.
             }
         }
         if ($bc !== null) {
             try {
                 $bc->destroy();
             } catch (\Throwable $ignored) {
+                // Destroy may fail if controller is in an inconsistent state; safe to ignore.
             }
         }
         if ($file !== null) {
             try {
                 $file->delete();
             } catch (\Throwable $ignored) {
+                // File cleanup is best-effort; safe to ignore.
             }
         }
 
@@ -557,6 +668,13 @@ function scientific_duplicate_course(
 /**
  * Execute optimized Moodle course duplication using local_clonecategory's direct pipeline:
  * MODE_IMPORT direct tempdir backup + selective exclusion + direct restore.
+ *
+ * @param int $sourcecourseid Source course ID to duplicate.
+ * @param string $fullname Target course full name base.
+ * @param string $shortname Target course short name base.
+ * @param int $targetcategoryid Target category ID to place the duplicate into.
+ * @param string $suffix Suffix to distinguish baseline vs ahtd duplicates.
+ * @return int Newly created course ID.
  */
 function scientific_duplicate_course_optimized(
     int $sourcecourseid,
@@ -583,13 +701,17 @@ function scientific_duplicate_course_optimized(
         );
 
         $plan = $bc->get_plan();
-        foreach (['users', 'role_assignments', 'enrolments', 'logs', 'grade_histories',
-                  'comments', 'badges', 'calendarevents', 'competencies'] as $setting) {
+        $settings = [
+            'users', 'role_assignments', 'enrolments', 'logs', 'grade_histories',
+            'comments', 'badges', 'calendarevents', 'competencies',
+        ];
+        foreach ($settings as $setting) {
             try {
                 if ($plan->setting_exists($setting) && $plan->get_setting($setting)->get_value()) {
                     $plan->get_setting($setting)->set_value(0);
                 }
             } catch (\Throwable $ignored) {
+                // Setting might not exist or may be locked; safe to ignore during benchmark optimization.
             }
         }
 
@@ -614,12 +736,14 @@ function scientific_duplicate_course_optimized(
         );
 
         $rcplan = $rc->get_plan();
-        foreach (['users', 'role_assignments', 'enrolments', 'logs', 'grade_histories'] as $setting) {
+        $rcsettings = ['users', 'role_assignments', 'enrolments', 'logs', 'grade_histories'];
+        foreach ($rcsettings as $setting) {
             try {
                 if ($rcplan->setting_exists($setting) && $rcplan->get_setting($setting)->get_value()) {
                     $rcplan->get_setting($setting)->set_value(0);
                 }
             } catch (\Throwable $ignored) {
+                // Setting might not exist or may be locked; safe to ignore during benchmark optimization.
             }
         }
 
@@ -629,18 +753,19 @@ function scientific_duplicate_course_optimized(
         $rc = null;
 
         return (int) $newcourseid;
-
     } finally {
         if ($bc !== null) {
             try {
                 $bc->destroy();
             } catch (\Throwable $ignored) {
+                // Destroy may fail if controller is in an inconsistent state; safe to ignore.
             }
         }
         if ($rc !== null) {
             try {
                 $rc->destroy();
             } catch (\Throwable $ignored) {
+                // Destroy may fail if controller is in an inconsistent state; safe to ignore.
             }
         }
         if ($backupid && is_dir($CFG->tempdir . '/backup/' . $backupid)) {
@@ -653,9 +778,13 @@ function scientific_duplicate_course_optimized(
  * Create a category clone while preserving hierarchy.
  *
  * Returns the cloned root ID and a list of source->target category IDs.
+ *
+ * @param int $sourceid Source category ID.
+ * @param int $targetparent Target parent category ID.
+ * @param string $suffix Suffix appended to cloned category names.
+ * @return array Array containing the new root category ID and the category ID mapping.
  */
-function scientific_clone_category_tree(int $sourceid, int $targetparent, string $suffix): array
-{
+function scientific_clone_category_tree(int $sourceid, int $targetparent, string $suffix): array {
     global $DB;
 
     $source = $DB->get_record('course_categories', ['id' => $sourceid], 'id,parent,name', MUST_EXIST);
@@ -688,9 +817,11 @@ function scientific_clone_category_tree(int $sourceid, int $targetparent, string
 
 /**
  * Return source courses grouped by category.
+ *
+ * @param array $categoryids List of category IDs.
+ * @return array Courses grouped by category ID.
  */
-function scientific_get_courses_by_category(array $categoryids): array
-{
+function scientific_get_courses_by_category(array $categoryids): array {
     global $DB;
 
     if (empty($categoryids)) {
@@ -719,10 +850,16 @@ function scientific_get_courses_by_category(array $categoryids): array
  *
  * All functional work is the same as AHTD. The architectural distinction is
  * that one Moodle lock covers the complete duplication job.
+ *
+ * @param int $sourceid Source root category ID.
+ * @param int $locktimeout Timeout in seconds for lock acquisition.
+ * @param string $pipeline Pipeline mode ('standard' or 'optimized').
+ * @return array Baseline execution metrics and clone information.
  */
 function scientific_run_baseline(
     int $sourceid,
-    int $locktimeout
+    int $locktimeout,
+    string $pipeline = 'standard'
 ): array {
     global $DB;
 
@@ -756,13 +893,23 @@ function scientific_run_baseline(
             }
 
             foreach ($coursesbycategory[$sourcecategoryid] as $course) {
-                scientific_duplicate_course(
-                    (int) $course->id,
-                    (string) $course->fullname,
-                    (string) $course->shortname,
-                    (int) $targetmap[$sourcecategoryid],
-                    '_BL'
-                );
+                if ($pipeline === 'optimized') {
+                    scientific_duplicate_course_optimized(
+                        (int) $course->id,
+                        (string) $course->fullname,
+                        (string) $course->shortname,
+                        (int) $targetmap[$sourcecategoryid],
+                        '_BL'
+                    );
+                } else {
+                    scientific_duplicate_course(
+                        (int) $course->id,
+                        (string) $course->fullname,
+                        (string) $course->shortname,
+                        (int) $targetmap[$sourcecategoryid],
+                        '_BL'
+                    );
+                }
                 $coursecount++;
             }
         }
@@ -777,7 +924,6 @@ function scientific_run_baseline(
             'lock_wait_samples' => [$lockwait],
             'lock_hold_samples' => [$lockhold],
         ];
-
     } finally {
         try {
             $lock->release();
@@ -793,6 +939,11 @@ function scientific_run_baseline(
  * The hierarchy is prepared before course work. Each course is then handled
  * as an independent protected work unit. The function intentionally does not
  * build a giant in-memory course queue.
+ *
+ * @param int $sourceid Source root category ID.
+ * @param int $locktimeout Timeout in seconds for lock acquisition.
+ * @param string $pipeline Pipeline mode ('standard' or 'optimized').
+ * @return array AHTD execution metrics and clone information.
  */
 function scientific_run_ahtd(
     int $sourceid,
@@ -849,7 +1000,6 @@ function scientific_run_ahtd(
                 $lockhold = scientific_now() - $holdstart;
                 $lockwaitsamples[] = $lockinfo['wait_sec'];
                 $lockholdsamples[] = $lockhold;
-
             } finally {
                 try {
                     $lock->release();
@@ -877,9 +1027,12 @@ function scientific_run_ahtd(
 
 /**
  * Calculate percentile using nearest-rank interpolation.
+ *
+ * @param array $values Numeric values.
+ * @param float $percentile Percentile to calculate (0 - 100).
+ * @return float Calculated percentile value.
  */
-function scientific_percentile(array $values, float $percentile): float
-{
+function scientific_percentile(array $values, float $percentile): float {
     if (empty($values)) {
         return 0.0;
     }
@@ -907,8 +1060,15 @@ function scientific_percentile(array $values, float $percentile): float
 /**
  * Verify that the generated clone is structurally consistent.
  *
- * IDs are intentionally ignored. Names, category/course counts and section
- * counts are used so the test does not depend on implementation IDs.
+ * IDs and generated names are intentionally ignored. The normalized
+ * structural hash compares category-depth distribution and per-course
+ * category depth/section cardinality in addition to category/course counts.
+ *
+ * @param int $sourceid Source root category ID.
+ * @param int $cloneid Cloned root category ID.
+ * @param int $expectedcategories Expected number of categories.
+ * @param int $expectedcourses Expected number of courses.
+ * @return array Verification result with status and metrics.
  */
 function scientific_verify_clone(
     int $sourceid,
@@ -931,85 +1091,139 @@ function scientific_verify_clone(
 
     $categoryok = $clonefingerprint['category_count'] === $expectedcategories;
     $courseok = $clonefingerprint['course_count'] === $expectedcourses;
+    $structureok = hash_equals($sourcefingerprint['hash'], $clonefingerprint['hash']);
 
-    // A clone has different generated names, so compare structural counts and
-    // course section cardinality through a normalized structural hash shape.
-    $ok = $categoryok && $courseok;
+    $ok = $categoryok && $courseok && $structureok;
 
     return [
         'ok' => $ok,
-        'reason' => $ok ? 'Functional structural verification passed.' :
-            'Category/course cardinality mismatch.',
+        'reason' => $ok ? 'Structural verification passed.' :
+            'Category/course cardinality or normalized structural fingerprint mismatch.',
         'source_category_count' => $sourcefingerprint['category_count'],
         'source_course_count' => $sourcefingerprint['course_count'],
         'clone_category_count' => $clonefingerprint['category_count'],
         'clone_course_count' => $clonefingerprint['course_count'],
+        'source_hash' => $sourcefingerprint['hash'],
         'clone_hash' => $clonefingerprint['hash'],
     ];
 }
 
 /**
- * Open CSV and write header if necessary.
+ * Return the versioned CSV header.
+ *
+ * @return array List of CSV column names.
  */
-function scientific_open_csv(string $outfile): array
-{
-    $exists = file_exists($outfile);
+function scientific_csv_header(): array {
+    return [
+        'benchmark_id',
+        'timestamp_utc',
+        'moodle_release',
+        'php_version',
+        'db_family',
+        'plugin_release',
+        'plugin_version',
+        'tier_label',
+        'tier',
+        'mode',
+        'run_number',
+        'run_order',
+        'pipeline',
+        'seed',
+        'tree_depth',
+        'branch_factor',
+        'categories_count',
+        'courses_count',
+        'verification',
+        'wall_clock_sec',
+        'throughput_courses_per_min',
+        'php_start_mb',
+        'php_peak_mb',
+        'php_peak_delta_mb',
+        'db_reads',
+        'db_writes',
+        'lock_samples',
+        'max_lock_wait_sec',
+        'mean_lock_wait_sec',
+        'p95_lock_wait_sec',
+        'max_lock_hold_sec',
+        'mean_lock_hold_sec',
+        'p95_lock_hold_sec',
+        'status',
+        'error_or_notes',
+    ];
+}
+
+/**
+ * Open a CSV and reject appending rows with a different schema.
+ *
+ * @param string $outfile Output CSV file path.
+ * @return resource Output file handle resource.
+ */
+function scientific_open_csv(string $outfile) {
+    $header = scientific_csv_header();
+    $exists = file_exists($outfile) && filesize($outfile) > 0;
+
+    if ($exists) {
+        $readhandle = fopen($outfile, 'rb');
+        if (!$readhandle) {
+            cli_error('Cannot inspect existing CSV output: ' . $outfile);
+        }
+        $existingheader = fgetcsv($readhandle);
+        fclose($readhandle);
+        if ($existingheader !== $header) {
+            cli_error('CSV schema mismatch. Use a new --output path for this benchmark version.');
+        }
+    }
+
     $fp = fopen($outfile, 'ab');
 
     if (!$fp) {
         cli_error('Cannot open output file: ' . $outfile);
     }
 
-    if (!$exists || filesize($outfile) === 0) {
-        fputcsv($fp, [
-            'benchmark_id',
-            'timestamp_utc',
-            'moodle_release',
-            'php_version',
-            'db_family',
-            'tier_label',
-            'tier',
-            'mode',
-            'run_number',
-            'seed',
-            'tree_depth',
-            'branch_factor',
-            'categories_count',
-            'courses_count',
-            'verification',
-            'wall_clock_sec',
-            'throughput_courses_per_min',
-            'php_start_mb',
-            'php_peak_mb',
-            'php_peak_delta_mb',
-            'db_reads',
-            'db_writes',
-            'lock_samples',
-            'max_lock_wait_sec',
-            'mean_lock_wait_sec',
-            'p95_lock_wait_sec',
-            'max_lock_hold_sec',
-            'mean_lock_hold_sec',
-            'p95_lock_hold_sec',
-            'status',
-            'error_or_notes',
-        ]);
+    if (!$exists) {
+        fputcsv($fp, $header);
         fflush($fp);
     }
 
-    return [$fp, $exists];
+    return $fp;
 }
 
 /**
  * Format a numeric array safely.
+ *
+ * @param array $values Numeric array.
+ * @return float Arithmetic mean of the values.
  */
-function scientific_mean(array $values): float
-{
+function scientific_mean(array $values): float {
     return empty($values) ? 0.0 : array_sum($values) / count($values);
 }
 
+/**
+ * Persist run configuration and environment independently of the result CSV.
+ *
+ * @param string $path Path where JSON metadata will be written.
+ * @param array $metadata Configuration and environment data.
+ * @return void
+ */
+function scientific_write_metadata(string $path, array $metadata): void {
+    try {
+        $encoded = json_encode(
+            $metadata,
+            JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR
+        );
+    } catch (\JsonException $e) {
+        cli_error('Cannot encode benchmark metadata: ' . $e->getMessage());
+    }
+
+    if (file_put_contents($path, $encoded . PHP_EOL, LOCK_EX) === false) {
+        cli_error('Cannot write benchmark metadata: ' . $path);
+    }
+}
+
 $environment = scientific_environment_fingerprint();
-[$fp] = scientific_open_csv($outfile);
+$pluginfingerprint = scientific_plugin_fingerprint();
+$fp = $runs > 0 ? scientific_open_csv($outfile) : null;
 
 cli_heading('Moodle Scientific Benchmark Suite');
 cli_writeln('Tier             : ' . $tiers[$tierid]['label']);
@@ -1018,25 +1232,88 @@ cli_writeln('Branch factor    : ' . $branch);
 cli_writeln('Courses          : ' . $courses);
 cli_writeln('Runs per mode    : ' . $runs);
 cli_writeln('Mode             : ' . $mode);
-$pipeline = (string)($options['pipeline'] ?? 'standard');
 cli_writeln('Pipeline         : ' . strtoupper($pipeline));
 cli_writeln('Seed             : ' . $seed);
 cli_writeln('Lock timeout     : ' . $locktimeout . ' s');
+cli_writeln('Warm-up runs     : ' . $warmups);
+cli_writeln('Run offset       : ' . $runoffset);
 cli_writeln('Verification     : ' . (!empty($options['verify']) ? 'ON' : 'OFF'));
 cli_writeln('Output           : ' . $outfile);
+cli_writeln('Metadata         : ' . $metadatafile);
 cli_writeln(str_repeat('=', 88));
 
 $modes = $mode === 'both' ? ['baseline', 'ahtd'] : [$mode];
+scientific_write_metadata($metadatafile, [
+    'schema_version' => 2,
+    'created_at_utc' => gmdate('Y-m-d\TH:i:s\Z'),
+    'command' => $_SERVER['argv'] ?? [],
+    'environment' => $environment,
+    'plugin' => $pluginfingerprint,
+    'configuration' => [
+        'tier' => $tierid,
+        'tier_label' => $tiers[$tierid]['label'],
+        'depth' => $depth,
+        'branch_factor' => $branch,
+        'courses' => $courses,
+        'runs_per_mode' => $runs,
+        'warmups' => $warmups,
+        'run_offset' => $runoffset,
+        'mode' => $mode,
+        'pipeline' => $pipeline,
+        'seed' => $seed,
+        'lock_timeout_seconds' => $locktimeout,
+        'verify' => !empty($options['verify']),
+        'cleanup' => !empty($options['cleanup']),
+        'keep_source' => !empty($options['keep-source']),
+        'mode_order' => 'alternating by logical run number',
+    ],
+]);
+
+for ($warmup = 1; $warmup <= $warmups; $warmup++) {
+    $warmupseed = $seed - $warmups + $warmup;
+    $source = null;
+    $warmupmodes = $modes;
+    if (count($warmupmodes) === 2 && ($warmup % 2 === 0)) {
+        $warmupmodes = array_reverse($warmupmodes);
+    }
+
+    cli_writeln("WARM-UP {$warmup}/{$warmups} | seed={$warmupseed}");
+    try {
+        $source = scientific_build_synthetic_tree($depth, $branch, $courses, $warmupseed);
+        foreach ($warmupmodes as $warmupmode) {
+            scientific_reset_runtime_state();
+            $result = $warmupmode === 'baseline'
+                ? scientific_run_baseline($source->root_id, $locktimeout, $pipeline)
+                : scientific_run_ahtd($source->root_id, $locktimeout, $pipeline);
+            $check = scientific_verify_clone(
+                $source->root_id,
+                $result['cloned_root_id'],
+                $source->category_count,
+                $source->course_count
+            );
+            if (!$check['ok']) {
+                cli_error('Warm-up verification failed for ' . strtoupper($warmupmode) . ': ' . $check['reason']);
+            }
+            scientific_delete_tree((int) $result['cloned_root_id']);
+        }
+    } finally {
+        if ($source !== null) {
+            scientific_delete_tree((int) $source->root_id);
+        }
+        scientific_reset_runtime_state();
+    }
+}
 
 /*
  * Each run gets its own source tree. This is important: a clone produced by
  * the previous mode/run can never become input to the next measurement.
  */
 for ($run = 1; $run <= $runs; $run++) {
-    $runseed = $seed + $run;
+    $logicalrun = $runoffset + $run;
+    $runseed = $seed + $logicalrun;
 
     cli_writeln("\n" . str_repeat('-', 88));
-    cli_writeln("RUN {$run}/{$runs} | seed={$runseed}");
+    cli_writeln("RUN {$logicalrun} | seed={$runseed}");
 
     $source = null;
 
@@ -1059,9 +1336,10 @@ for ($run = 1; $run <= $runs; $run++) {
          * Run order alternates to reduce systematic ordering bias.
          */
         $runmodes = $modes;
-        if (count($runmodes) === 2 && ($run % 2 === 0)) {
+        if (count($runmodes) === 2 && ($logicalrun % 2 === 0)) {
             $runmodes = array_reverse($runmodes);
         }
+        $runorder = implode('>', array_map('strtoupper', $runmodes));
 
         foreach ($runmodes as $currentmode) {
             scientific_reset_runtime_state();
@@ -1089,7 +1367,8 @@ for ($run = 1; $run <= $runs; $run++) {
                 if ($currentmode === 'baseline') {
                     $result = scientific_run_baseline(
                         $source->root_id,
-                        $locktimeout
+                        $locktimeout,
+                        $pipeline
                     );
                 } else {
                     $result = scientific_run_ahtd(
@@ -1116,7 +1395,6 @@ for ($run = 1; $run <= $runs; $run++) {
                         $status = 'VERIFICATION_FAILED';
                     }
                 }
-
             } catch (\Throwable $e) {
                 $wall = scientific_now() - $tstart;
                 $status = 'FAILED';
@@ -1145,10 +1423,14 @@ for ($run = 1; $run <= $runs; $run++) {
                 $environment['moodle_release'],
                 $environment['php_version'],
                 $environment['db_family'],
+                $pluginfingerprint['release'],
+                $pluginfingerprint['version'],
                 $tiers[$tierid]['label'],
                 $tierid,
                 strtoupper($currentmode),
-                $run,
+                $logicalrun,
+                $runorder,
+                $pipeline,
                 $runseed,
                 $depth,
                 $branch,
@@ -1198,10 +1480,8 @@ for ($run = 1; $run <= $runs; $run++) {
                 scientific_delete_tree((int) $result['cloned_root_id']);
             }
         }
-
     } catch (\Throwable $e) {
         cli_problem('Run setup failed: ' . $e->getMessage());
-
     } finally {
         if ($source !== null && empty($options['keep-source'])) {
             scientific_delete_tree((int) $source->root_id);
@@ -1211,10 +1491,16 @@ for ($run = 1; $run <= $runs; $run++) {
     }
 }
 
-fclose($fp);
+if ($fp !== null) {
+    fclose($fp);
+}
 
 cli_writeln("\n" . str_repeat('=', 88));
 cli_heading('Scientific Benchmark Complete');
-cli_writeln('Results saved to: ' . $outfile);
-cli_writeln('Use the CSV as the raw per-run dataset; calculate mean/SD/median/P95/CI from raw runs.');
-cli_writeln('For publication-quality results, do not report only a single run.');
+if ($runs > 0) {
+    cli_writeln('Results saved to: ' . $outfile);
+    cli_writeln('Use the CSV as the raw per-run dataset; calculate mean/SD/median/P95/CI from raw runs.');
+    cli_writeln('For publication-quality results, do not report only a single run.');
+} else {
+    cli_writeln('Warm-up only; no result rows were recorded.');
+}

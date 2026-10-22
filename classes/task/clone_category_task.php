@@ -34,28 +34,28 @@ use local_clonecategory\manager;
  */
 class clone_category_task extends \core\task\adhoc_task {
     /** @var int Timestamp of last pause check to reduce DB polling. */
-    private int $last_pause_check_time = 0;
+    private int $lastpausechecktime = 0;
 
     /** @var int Minimum seconds between pause checks. */
     private const PAUSE_CHECK_INTERVAL = 3;
 
     /** @var int Pending progress flushes. */
-    private int $pending_progress = 0;
+    private int $pendingprogress = 0;
 
     /** @var int Batch size for progress DB writes. */
     private const PROGRESS_BATCH_SIZE = 3;
 
     /** @var string Last progress item name for deferred flush. */
-    private string $last_progress_name = '';
+    private string $lastprogressname = '';
 
     /** @var string Last progress item type for deferred flush. */
-    private string $last_progress_type = '';
+    private string $lastprogresstype = '';
 
     /** @var array<int, bool> Cache of verified target categories for restore capability. */
-    private array $verified_restore_categories = [];
+    private array $verifiedrestorecategories = [];
 
     /** @var int Timestamp of last temp directory maintenance. */
-    private int $last_temp_cleanup_time = 0;
+    private int $lasttempcleanuptime = 0;
 
     /** @var int Minimum interval in seconds between temp directory cleanups (5 minutes). */
     private const TEMP_CLEANUP_INTERVAL = 300;
@@ -243,9 +243,9 @@ class clone_category_task extends \core\task\adhoc_task {
         $context = \context_course::instance($course->id);
         if ($job->clonemode === manager::MODE_FULL) {
             require_capability('moodle/backup:backupcourse', $context, $job->userid);
-            if (!isset($this->verified_restore_categories[$targetcategoryid])) {
+            if (!isset($this->verifiedrestorecategories[$targetcategoryid])) {
                 require_capability('moodle/restore:restorecourse', \context_coursecat::instance($targetcategoryid), $job->userid);
-                $this->verified_restore_categories[$targetcategoryid] = true;
+                $this->verifiedrestorecategories[$targetcategoryid] = true;
             }
         }
         $existing = $DB->get_record(
@@ -418,9 +418,12 @@ class clone_category_task extends \core\task\adhoc_task {
         global $DB;
         $base = \core_text::substr($name, 0, 190) . '_clone_' . $jobid . '_' . $sourceid;
         // Single query to fetch all colliding shortnames instead of looping.
-        $existing = $DB->get_fieldset_select('course', 'shortname',
+        $existing = $DB->get_fieldset_select(
+            'course',
+            'shortname',
             $DB->sql_like('shortname', ':pattern'),
-            ['pattern' => $DB->sql_like_escape($base) . '%']);
+            ['pattern' => $DB->sql_like_escape($base) . '%']
+        );
         $lookup = array_flip($existing);
         $candidate = $base;
         $counter = 0;
@@ -500,10 +503,10 @@ class clone_category_task extends \core\task\adhoc_task {
         global $DB;
         // Throttle DB polls to reduce query overhead during tight loops.
         $now = time();
-        if ($now - $this->last_pause_check_time < self::PAUSE_CHECK_INTERVAL) {
+        if ($now - $this->lastpausechecktime < self::PAUSE_CHECK_INTERVAL) {
             return false; // Assume still running until next check window.
         }
-        $this->last_pause_check_time = $now;
+        $this->lastpausechecktime = $now;
         $status = $DB->get_field('local_clonecategory_jobs', 'status', ['id' => $jobid]);
         return $status !== manager::STATUS_RUNNING;
     }
@@ -516,10 +519,10 @@ class clone_category_task extends \core\task\adhoc_task {
      * @param string $itemname
      */
     private function increment_progress(int $jobid, string $type, string $itemname) {
-        $this->last_progress_type = $type;
-        $this->last_progress_name = $itemname;
-        $this->pending_progress++;
-        if ($this->pending_progress >= self::PROGRESS_BATCH_SIZE) {
+        $this->lastprogresstype = $type;
+        $this->lastprogressname = $itemname;
+        $this->pendingprogress++;
+        if ($this->pendingprogress >= self::PROGRESS_BATCH_SIZE) {
             $this->flush_progress($jobid);
         }
     }
@@ -531,10 +534,10 @@ class clone_category_task extends \core\task\adhoc_task {
      */
     private function flush_progress(int $jobid): void {
         global $DB;
-        if ($this->pending_progress === 0) {
+        if ($this->pendingprogress === 0) {
             return;
         }
-        $this->pending_progress = 0;
+        $this->pendingprogress = 0;
         $job = $DB->get_record('local_clonecategory_jobs', ['id' => $jobid]);
         if (!$job) {
             return;
@@ -550,11 +553,11 @@ class clone_category_task extends \core\task\adhoc_task {
         $total = (int)$job->totalcategories + (int)$job->totalcourses;
         $record = (object)['id' => $jobid, 'categoriescount' => $categories, 'coursescount' => $courses,
             'progress' => $total ? min(99, (int)round(100 * ($categories + $courses) / $total)) : 0];
-        if ($job->status === manager::STATUS_RUNNING && $this->last_progress_name !== '') {
+        if ($job->status === manager::STATUS_RUNNING && $this->lastprogressname !== '') {
             $record->currentstep = \core_text::substr(get_string(
                 'job_cloned_item',
                 'local_clonecategory',
-                (object)['type' => $this->last_progress_type, 'name' => $this->last_progress_name]
+                (object)['type' => $this->lastprogresstype, 'name' => $this->lastprogressname]
             ), 0, 255);
         }
         $DB->update_record('local_clonecategory_jobs', $record);
@@ -584,10 +587,10 @@ class clone_category_task extends \core\task\adhoc_task {
     private function periodic_temp_cleanup(): void {
         global $CFG;
         $now = time();
-        if ($now - $this->last_temp_cleanup_time < self::TEMP_CLEANUP_INTERVAL) {
+        if ($now - $this->lasttempcleanuptime < self::TEMP_CLEANUP_INTERVAL) {
             return;
         }
-        $this->last_temp_cleanup_time = $now;
+        $this->lasttempcleanuptime = $now;
         $backupdir = $CFG->tempdir . '/backup';
         if (is_dir($backupdir)) {
             $handle = @opendir($backupdir);

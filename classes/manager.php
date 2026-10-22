@@ -747,9 +747,12 @@ class manager {
         $cat = $DB->get_record('course_categories', ['id' => $sourcecatid], 'id, path', MUST_EXIST);
         $escaped = $DB->sql_like_escape($cat->path);
         // One query counts every descendant category using the materialised path.
-        $catids = $DB->get_fieldset_select('course_categories', 'id',
+        $catids = $DB->get_fieldset_select(
+            'course_categories',
+            'id',
             "path = :exact OR path LIKE :pattern",
-            ['exact' => $cat->path, 'pattern' => $escaped . '/%']);
+            ['exact' => $cat->path, 'pattern' => $escaped . '/%']
+        );
         if (empty($catids)) {
             return ['categories' => 0, 'courses' => 0];
         }
