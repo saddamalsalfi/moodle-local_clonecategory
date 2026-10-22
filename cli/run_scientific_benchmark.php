@@ -644,6 +644,7 @@ function scientific_duplicate_course(
                 $rc->destroy();
             } catch (\Throwable $ignored) {
                 // Destroy may fail if controller is in an inconsistent state; safe to ignore.
+                unset($ignored);
             }
         }
         if ($bc !== null) {
@@ -651,6 +652,7 @@ function scientific_duplicate_course(
                 $bc->destroy();
             } catch (\Throwable $ignored) {
                 // Destroy may fail if controller is in an inconsistent state; safe to ignore.
+                unset($ignored);
             }
         }
         if ($file !== null) {
@@ -658,6 +660,7 @@ function scientific_duplicate_course(
                 $file->delete();
             } catch (\Throwable $ignored) {
                 // File cleanup is best-effort; safe to ignore.
+                unset($ignored);
             }
         }
 
@@ -712,6 +715,7 @@ function scientific_duplicate_course_optimized(
                 }
             } catch (\Throwable $ignored) {
                 // Setting might not exist or may be locked; safe to ignore during benchmark optimization.
+                unset($ignored);
             }
         }
 
@@ -744,6 +748,7 @@ function scientific_duplicate_course_optimized(
                 }
             } catch (\Throwable $ignored) {
                 // Setting might not exist or may be locked; safe to ignore during benchmark optimization.
+                unset($ignored);
             }
         }
 
@@ -759,6 +764,7 @@ function scientific_duplicate_course_optimized(
                 $bc->destroy();
             } catch (\Throwable $ignored) {
                 // Destroy may fail if controller is in an inconsistent state; safe to ignore.
+                unset($ignored);
             }
         }
         if ($rc !== null) {
@@ -766,6 +772,7 @@ function scientific_duplicate_course_optimized(
                 $rc->destroy();
             } catch (\Throwable $ignored) {
                 // Destroy may fail if controller is in an inconsistent state; safe to ignore.
+                unset($ignored);
             }
         }
         if ($backupid && is_dir($CFG->tempdir . '/backup/' . $backupid)) {
