@@ -13,7 +13,7 @@
 
 Settings mode produces empty courses. Full-content mode excludes learner enrolments, grades and submissions. Native selects remain available if JavaScript is disabled. Phone and Arabic/RTL layouts use the same selection rules.
 
-For a settings-only preview job blocked after merely viewing a course, update to 1.4.0 and retry rollback of the same eligible job. The buffered-log correction preserves the original fingerprint; it cannot recreate a missing historical baseline.
+For a settings-only preview job blocked after merely viewing a course, update to 1.4.1 (or 1.4.0+) and retry rollback of the same eligible job. The buffered-log correction preserves the original fingerprint; it cannot recreate a missing historical baseline.
 
 ## Scientific Benchmark Tool
 
@@ -29,3 +29,6 @@ Options include:
 - `-m, --mode=both|ahtd|baseline`: Modes to evaluate (default: both).
 - `-p, --pipeline=standard|optimized`: Standard identical isolation or full optimized AHTD streaming pipeline.
 - `-o, --output=filename.csv`: Output CSV file (default: scientific_benchmark.csv).
+- `--warmups=N`: Unrecorded, verified warm-up iterations (default: 0).
+- `--run-offset=N`: Logical run offset for single-process repetition loops (default: 0).
+- `--metadata=filename.json`: JSON metadata output path (default: `<output>.metadata.json`).

@@ -2,11 +2,11 @@
 
 Clone Moodle category hierarchies using Moodle's background task, course creation and backup/restore APIs.
 
-## Version 1.4.0
+## Version 1.4.1
 
-Stable release featuring significant performance optimizations, bounded-memory execution, zero-archive streaming pipeline, and dual-pipeline scientific benchmark suite. See [release notes](RELEASE_NOTES.md), [change history](CHANGELOG.md) and [validation evidence](QA.md).
+Stable release featuring empirical benchmark metadata v2, code style compliance, academic citation (CFF), and performance optimizations. See [release notes](RELEASE_NOTES.md), [change history](CHANGELOG.md) and [validation evidence](QA.md).
 
-Download the Moodle installation ZIP from the [v1.4.0 release](https://github.com/saddamalsalfi/moodle-local_clonecategory/releases/tag/v1.4.0). GitHub-generated tag archives are source archives: extract and rename their root folder to `clonecategory` before manual installation.
+Download the Moodle installation ZIP from the [v1.4.1 release](https://github.com/saddamalsalfi/moodle-local_clonecategory/releases/tag/v1.4.1). GitHub-generated tag archives are source archives: extract and rename their root folder to `clonecategory` before manual installation.
 
 ### Rollback correction
 

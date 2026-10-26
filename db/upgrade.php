@@ -142,5 +142,10 @@ function xmldb_local_clonecategory_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026102100, 'local', 'clonecategory');
     }
 
+    if ($oldversion < 2026102600) {
+        // Release 1.4.1: benchmark metadata v2, code style compliance, and academic citation.
+        upgrade_plugin_savepoint(true, 2026102600, 'local', 'clonecategory');
+    }
+
     return true;
 }

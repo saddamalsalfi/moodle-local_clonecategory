@@ -1,10 +1,10 @@
-# Quality evidence — 1.4.0
+# Quality evidence — 1.4.1
 
-Prepared on 21 October 2026. Stable package version: `2026102100`. Base source: `v1.4.0`. The results below distinguish executed local checks from the GitHub CI matrix. GitHub and Marketplace publication are separate operations.
+Prepared on 26 October 2026. Stable package version: `2026102600`. Base source: `v1.4.1`. The results below distinguish executed local checks from the GitHub CI matrix. GitHub and Marketplace publication are separate operations.
 
 ## Stable release verification
 
-Build `2026102100` declares release `1.4.0` and `MATURITY_STABLE`. The stable package was re-tested across the full matrix from Moodle 4.0 to 5.3. PHP syntax, Moodle coding standards (PHPCS), Stylelint, Grunt AMD build verification, and all unit tests passed with 0 errors and 0 warnings.
+Build `2026102600` declares release `1.4.1` and `MATURITY_STABLE`. The stable package was re-tested across the full matrix from Moodle 4.0 to 5.3. PHP syntax, Moodle coding standards (PHPCS), Stylelint, Grunt AMD build verification, and all unit tests passed with 0 errors and 0 warnings.
 
 In addition, the empirical CLI benchmark suite (`cli/run_scientific_benchmark.php`) verified bounded-memory performance, 28.5% faster wall-clock execution, +39.8% throughput increase, and an 85.5% reduction in lock hold duration across synthetic hierarchy tiers. Telemetry is recorded in `cli/scientific_benchmark.csv`.
 

@@ -1,13 +1,13 @@
-# Release v1.4.0
+# Release v1.4.1
 
-**Release date:** 21 October 2026  
+**Release date:** 26 October 2026  
 **Component:** `local_clonecategory`  
-**Plugin build:** `2026102100`  
+**Plugin build:** `2026102600`  
 **Maturity:** `MATURITY_STABLE`  
 **Maintainer:** [@saddamalsalfi](https://github.com/saddamalsalfi)  
 **Licence:** GNU GPL v3 or later
 
-Clone Category v1.4.0 delivers major performance and scalability enhancements based on empirical benchmark evaluation. The release introduces an optimized zero-archive streaming pipeline (28.5% faster wall-clock execution, +39.8% throughput), $O(1)$ SQL path-based tree indexing, batched progress tracking, memory pressure management, and a dual-pipeline scientific benchmark harness for academic research.
+Clone Category v1.4.1 introduces enhancements to the scientific benchmark infrastructure (JSON metadata schema v2, warm-up iterations, and run offsets), official academic citation metadata (`CITATION.cff`), strict compliance with Moodle CodeSniffer (PHPCS) coding standards, and repository hygiene rules. It builds directly upon the performance architecture established in v1.4.0 (zero-archive streaming pipeline, $O(1)$ SQL path-based tree indexing, batched progress tracking, and bounded memory controls).
 
 ## New copy scopes
 
@@ -48,7 +48,7 @@ Rollback remains limited to the latest job, within 24 hours and after the worker
 
 ## Upgrade and installation
 
-1. Back up the Moodle database and plugin directory, then install the release's `local_clonecategory-1.4.0.zip` package as a plugin update.
+1. Back up the Moodle database and plugin directory, then install the release's `local_clonecategory-1.4.1.zip` package as a plugin update.
 2. Complete the normal Moodle upgrade and purge caches.
 3. Keep Moodle cron running to process queued jobs.
 4. If an unchanged settings-only job was blocked by deferred creation logs, retry rollback of that same job while it remains eligible.
@@ -84,7 +84,7 @@ Declared compatibility is Moodle 4.0–5.3. Third-party course formats/activitie
 
 ## Source archives
 
-- [v1.4.0 ZIP source archive](https://github.com/saddamalsalfi/moodle-local_clonecategory/archive/refs/tags/v1.4.0.zip)
-- [v1.4.0 TAR.GZ source archive](https://github.com/saddamalsalfi/moodle-local_clonecategory/archive/refs/tags/v1.4.0.tar.gz)
+- [v1.4.1 ZIP source archive](https://github.com/saddamalsalfi/moodle-local_clonecategory/archive/refs/tags/v1.4.1.zip)
+- [v1.4.1 TAR.GZ source archive](https://github.com/saddamalsalfi/moodle-local_clonecategory/archive/refs/tags/v1.4.1.tar.gz)
 - [Installation instructions](README.md)
 - [Usage guide](docs/USAGE.md)

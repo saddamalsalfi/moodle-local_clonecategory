@@ -1,3 +1,10 @@
+=== 1.4.1 ===
+* Benchmark: Enhanced metadata schema to v2 with JSON sidecar export, verified warm-up iterations (--warmups), and single-process run offset (--run-offset).
+* Benchmark: Alternating mode execution order to mitigate systematic cache ordering bias in paired benchmarking.
+* Standards & Quality: Full compliance with Moodle CodeSniffer (PHPCS), PHPDoc parameter tags, and safe exception variable unsetting in benchmark script.
+* Academic Citation: Added CITATION.cff with Zenodo DOI and ORCID author metadata for scholarly reproducibility.
+* Maintenance: Excluded local benchmark telemetry and result directories (cli/results/) from version control.
+
 === 1.4.0 ===
 * Performance: O(1) SQL path-based tree indexing implemented in manager::count_category_tree(), eliminating recursive object instantiation.
 * Performance: Batched progress writes (PROGRESS_BATCH_SIZE = 3) to reduce job table write contention.
