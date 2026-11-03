@@ -26,14 +26,15 @@ namespace local_clonecategory;
 
 use local_clonecategory\benchmark_v2 as benchmark;
 
+#[\PHPUnit\Framework\Attributes\CoversNothing]
 /**
  * No course, task or database mutation is required by these helper tests.
  *
+ * @coversNothing
  * @package    local_clonecategory
  * @copyright  2026 Saddam Al-Slfi
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-#[\PHPUnit\Framework\Attributes\CoversNothing]
 final class scientific_benchmark_test extends \basic_testcase {
     /**
      * Set up the optional PHP 8.1+ CLI helper library.
