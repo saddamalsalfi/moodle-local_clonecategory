@@ -1,16 +1,45 @@
-# Quality evidence — 1.4.1
+# Quality evidence — 1.4.2
 
-Prepared on 26 October 2026. Stable package version: `2026102600`. Base source: `v1.4.1`. The results below distinguish executed local checks from the GitHub CI matrix. GitHub and Marketplace publication are separate operations.
+Prepared on 29 October 2026. Local source build `2026102900`, release `1.4.2`. Separate current source checks, preserved live R4 results and inherited earlier integration records. Configured CI is not a completed CI run.
 
-## Stable release verification
+## Current local source checks
 
-Build `2026102600` declares release `1.4.1` and `MATURITY_STABLE`. The stable package was re-tested across the full matrix from Moodle 4.0 to 5.3. PHP syntax, Moodle coding standards (PHPCS), Stylelint, Grunt AMD build verification, and all unit tests passed with 0 errors and 0 warnings.
+- PHP syntax checks cover every plugin PHP file.
+- Standalone benchmark runner executes 52 assertions without bootstrapping Moodle or touching a database: seeded schedules, pair balance, warmup membership, n=1/zero/missing statistics, canonical hashing, expected identity normalisation, corruption detection, separate-copy restoration and multiline CSV quoting.
+- Metadata-only upgrade probe verifies 1.4.1 -> 1.4.2 savepoint 2026102900, no direct schema/content writes beyond the standard Moodle metadata savepoint, and current-version no-op. Earlier upgrade blocks and install.xml schema remain unchanged.
+- Moodle CodeSniffer checks the complete plugin, with narrow documented MoodleInternal exemptions only for CLI-before-bootstrap/pure-test entry points.
+- Existing category-selector regression runs unchanged. English/Arabic UI keys, privacy files and AMD/CSS assets remain byte-identical to the local baseline; no browser rebuild is needed. The two production engine/task files only normalise CRLF to LF and now match the live engine SHA256 exactly.
+- R4 entry/library syntax trees match the integrated code after comments/format and equivalent constant-string concatenation normalisation. This verifies a source integration property, not new live performance or every possible runtime path.
+- Installation ZIP has one clonecategory/ root, includes the CLI support library and tests, excludes .git and local execution output, and is reopened/hash-verified.
+- Source rollback is tested on a SEPARATE plugin copy. It restores the exact original file manifest, original --help behaviour and 1.4.1 metadata; it is not an installed Moodle database downgrade procedure.
 
-In addition, the empirical CLI benchmark suite (`cli/run_scientific_benchmark.php`) verified bounded-memory performance, 28.5% faster wall-clock execution, +39.8% throughput increase, and an 85.5% reduction in lock hold duration across synthetic hierarchy tiers. Telemetry is recorded in `cli/scientific_benchmark.csv`.
+Executable commands:
 
-The release workflow runs the reusable CI matrix before publishing the GitHub Release. No external CI success is claimed merely because the workflow is configured.
+```bash
+php tests/benchmark_runner.php
+php tests/upgrade_runner.php
+node tests/category_tree_test.cjs
+```
 
-## Rollback regression correction
+Five pure PHPUnit helper tests (18 assertions) passed with PHPUnit 11.5.57 / PHP 8.4.13 using an isolated basic_testcase adapter, without Moodle bootstrap or database integration. They are provided in tests/scientific_benchmark_test.php and skip the optional helper runtime on PHP <8.1. They supplement, not replace, existing clone/privacy integration tests. The new standalone runners are included in CI (benchmark runtime on PHP 8.1+ only). The release publication job now explicitly requires successful reusable compatibility CI, including on manual dispatch; default tag input is v1.4.2.
+
+## Preserved live production-path result
+
+On 28 October 2026, experiment `20261028_054258_d95d5889c1`, R4 executed one complete source-category-2 pair on Moodle 5.3 / PHP 8.3.36 / MariaDB 11.8.9. Source workload: 136 categories, 432 courses, 7,344 sections including General, 1,706 modules and 1,274 file references. Native readiness 227.381416529 s, plugin readiness 95.298894300 s. Both verified and cleaned. Original executable and engine hashes are retained unedited in docs/benchmarks/2026-10-28-r4.
+
+This evidence was collected with the 1.4.1 production engine and separately installed R4 CLI; it is not a new 1.4.2 full-scale benchmark execution. The local production engine matches it after line-ending normalisation. See [BENCHMARK.md](docs/BENCHMARK.md) for full metric units, timings, correctness scope and provenance.
+
+One independent pair, native first, no cache flush, changing shared-host load and differing production optional backup flags prevent significance/cold-cache/general-superiority claims. Earlier synthetic 28.5%/85.5% telemetry does not establish current product performance, lock durations or O(1) behaviour. Historical CSV remains unchanged and is not pooled.
+
+## Not newly executed by this local update
+
+No full Moodle PHPUnit/database migration, multi-version/PHP/database CI matrix, browser pass, concurrent-user rollback study or fresh full-scale 1.4.2 live-site run is represented as completed here. The metadata probe is an isolated stub-based source regression, not a database restore/upgrade integration test. Existing production code and schema are unchanged, but release CI and site-specific integration still need their normal execution before external publication. No Git commit, tag, push, GitHub/Marketplace release or new Zenodo deposit is created by editing these files.
+
+## Historical integration evidence inherited from earlier releases
+
+The following records were present before 1.4.2 and are not re-executed matrix/browser results for this update.
+
+### Rollback regression correction
 
 Reported environment: Moodle **5.2.2 (Build: 20260810)** and plugin 1.3.0-beta. The old ZIP reproduced the failure in a real Chromium browser after viewing copies in topics, weeks and social formats. Comparing complete fingerprint input showed no resource changes: only buffered `course_section_created` and `enrol_instance_created` entries appeared after the worker process ended. The correction flushes the standard log store before snapshotting.
 

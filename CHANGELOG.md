@@ -1,5 +1,28 @@
 # Changelog
 
+## 1.4.2 — 2026-10-29
+
+Maintenance release; Moodle plugin build `2026102900`. No database schema or production engine changes.
+
+### Added
+
+- Production-path R4 benchmark support library, process isolation, owned task execution, strong content/file verification and ownership-guarded common cleanup.
+- Reproducible real-source paired schedules, explicit warmup records, private structured evidence and null-aware paired descriptive statistics.
+- Standalone benchmark regression tests, PHPUnit coverage of pure benchmark helpers, upgrade regression checks, and preserved live R4 evidence metadata.
+- Full-tree observed results and caveats in `docs/BENCHMARK.md` and `QA.md`.
+
+### Changed
+
+- Replaced custom synthetic BASELINE/AHTD entry point with actual core async copy versus actual production plugin task. Legacy synthetic CLI flags are rejected.
+- Release/citation/usage/upgrade metadata now identifies 1.4.2. The metadata-only XMLDB savepoint preserves all jobs, items and fingerprints.
+- Benchmark runtime requires PHP 8.1+; production plugin minimum and declared Moodle range are unchanged. No full matrix success is asserted.
+
+### Corrected interpretation
+
+- R4 observed native readiness 227.381416529 s versus plugin 95.298894300 s for 136 categories / 432 courses each; both verified and cleaned. One pair cannot establish significance, cold-cache equivalence or universal superiority.
+- Historical synthetic CSV and earlier changelog claims are retained as historical records, not current product/lock/complexity evidence. In particular warmups do not eliminate cache bias, SQL query count does not prove O(1) runtime, and empirical samples do not guarantee bounded memory.
+- Production copy scopes, permissions, privacy, worker behaviour, pause/retry/rollback guards and UI assets remain unchanged. Engine files only normalise CRLF to LF to match the live-tested source exactly; .gitattributes preserves canonical PHP line endings.
+
 ## 1.4.1 — 2026-10-26
 
 Stable release; Moodle plugin build `2026102600`.

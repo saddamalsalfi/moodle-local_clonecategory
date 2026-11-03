@@ -121,6 +121,13 @@ jobs:
         if: ${{ !cancelled() }}
         run: moodle-plugin-ci phpunit --fail-on-warning
 
+      - name: Benchmark pure regression tests
+        if: matrix.php != '8.0'
+        run: php plugin/tests/benchmark_runner.php
+
+      - name: Metadata-only upgrade regression
+        run: php plugin/tests/upgrade_runner.php
+
       - name: Category selector behaviour
         run: node plugin/tests/category_tree_test.cjs
 

@@ -2,11 +2,11 @@
 
 Clone Moodle category hierarchies using Moodle's background task, course creation and backup/restore APIs.
 
-## Version 1.4.1
+## Version 1.4.2
 
-Stable release featuring empirical benchmark metadata v2, code style compliance, academic citation (CFF), and performance optimizations. See [release notes](RELEASE_NOTES.md), [change history](CHANGELOG.md) and [validation evidence](QA.md).
+Maintenance release integrating the production-path R4 benchmark, explicit evidence limits, regression tests and upgrade metadata. The production cloning engine and user interface are unchanged. See [release notes](RELEASE_NOTES.md), [change history](CHANGELOG.md) and [validation evidence](QA.md).
 
-Download the Moodle installation ZIP from the [v1.4.1 release](https://github.com/saddamalsalfi/moodle-local_clonecategory/releases/tag/v1.4.1). GitHub-generated tag archives are source archives: extract and rename their root folder to `clonecategory` before manual installation.
+The installable archive is `local_clonecategory-1.4.2.zip` with one `clonecategory/` root. This local update does not publish a GitHub tag, Marketplace release or Zenodo deposit. Source archives must be renamed to the correct plugin folder before manual installation.
 
 ### Rollback correction
 
@@ -60,44 +60,21 @@ Run local selector tests with `node tests/category_tree_test.cjs`. Run integrati
 
 ### Scientific benchmark protocol
 
-Run the empirical benchmark from the Moodle root in a quiet, disposable
-environment. For a publishable comparison, use the `standard` pipeline in
-both modes, preserve the CSV and its JSON metadata sidecar, and run at least
-30 paired repetitions per tier after three verified warm-up iterations:
+The CLI now compares actual Moodle `asynchronous_copy_task` work with the installed plugin's actual `clone_category_task`. It does not label two custom synchronous loops as separate products. The CLI requires PHP 8.1 or later; the production plugin's declared Moodle/PHP compatibility is unchanged. The exact live benchmark was validated on Moodle 5.3 / PHP 8.3.36 / MariaDB 11.8.9, not the entire compatibility matrix.
 
-```powershell
-New-Item -ItemType Directory -Force -Path local/clonecategory/cli/results | Out-Null
-$output = 'local/clonecategory/cli/results/tier1.csv'
+```bash
+# Default: private inventory and protocol only, no cloning.
+php public/local/clonecategory/cli/run_scientific_benchmark.php --source-category=2
 
-php local/clonecategory/cli/run_scientific_benchmark.php `
-  --tier=1 --mode=both --pipeline=standard --warmups=3 --runs=30 `
-  --seed=20261020 "--output=$output"
+# Complete single pair, verifies and cleans only its own temporary copies.
+php public/local/clonecategory/cli/run_scientific_benchmark.php --source-category=2 --execute --runs=1 --warmups=0
 ```
 
-The runner alternates mode order by logical run number, records the actual
-order and pipeline in every CSV row, and rejects appending to a CSV with an
-older schema. It writes environment, plugin, configuration, and command-line
-metadata to `<output>.metadata.json`. The benchmark's lock metrics are Moodle
-Lock API wait/hold measurements, not database transaction durations.
+For Moodle layouts without `public/`, use `local/clonecategory/cli/`. Each run writes private CSV, raw logs, source signatures and code hashes. Source hashing, verification and common guarded cleanup are outside the readiness endpoint. Warmups are recorded, labelled and excluded only from summaries. Preserve each experiment directory; never combine code revisions or append old synthetic telemetry.
 
-For the strongest isolation from PHP request-local state, perform warm-up
-once and then execute every paired repetition in a fresh PHP process:
+The 28 October 2026 R4 full-tree observation covered 136 categories / 432 courses per method: native readiness **227.381416529 s**, plugin readiness **95.298894300 s**, with both verified and cleaned. This one pair is descriptive, not a universal speed guarantee, significance test, lock-duration result or proof of asymptotic complexity. Production optional backup flags differ, no cache flush was performed, and native ran first. See [benchmark protocol and results](docs/BENCHMARK.md), [usage](docs/USAGE.md) and [QA evidence](QA.md).
 
-```powershell
-$runner = 'local/clonecategory/cli/run_scientific_benchmark.php'
-$output = 'local/clonecategory/cli/results/tier1-fresh-process.csv'
-php $runner --tier=1 --mode=both --pipeline=standard --runs=0 --warmups=3 `
-  "--output=$output" "--metadata=$output.warmup.metadata.json"
-1..30 | ForEach-Object {
-    php $runner --tier=1 --mode=both --pipeline=standard --runs=1 `
-      --run-offset=($_ - 1) --seed=20261020 "--output=$output" `
-      "--metadata=$output.run$_.metadata.json"
-}
-```
-
-Do not mix standard and optimized-pipeline rows in one analysis. Report raw
-CSV rows, the JSON sidecar, the exact plugin commit, hardware and database
-configuration, and paired confidence intervals.
+Pure benchmark regression checks: `php tests/benchmark_runner.php` (PHP 8.1+). Legacy options `--tier`, `--mode`, `--pipeline`, `--metadata`, `--output` and `--run-offset` are rejected; migrate automation using the usage guide. `cli/scientific_benchmark.csv` is historical synthetic telemetry only and is never rewritten or used as current production evidence.
 
 ### Marketplace badges
 

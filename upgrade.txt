@@ -1,3 +1,12 @@
+=== 1.4.2 ===
+* Version/build: 1.4.2 / 2026102900. Metadata-only upgrade savepoint; no DDL, data rewrite, fingerprint replacement or task creation.
+* Run normal Moodle upgrade after deploying all plugin files, then purge caches. The existing install.xml schema and prior migration steps are unchanged.
+* Benchmark: replace the entry point together with cli/scientific_benchmark_v2/library.php. The CLI requires PHP 8.1+ independently of production plugin compatibility.
+* Automation migration: removed --tier/--mode/--pipeline/--output/--metadata/--run-offset. Use --source-category, --execute, --runs, --warmups and a NEW --output-dir. Default is plan only.
+* Preserve historical CSV and job/item records. Never combine old synthetic CSV with production-path R4 results. See docs/USAGE.md and docs/BENCHMARK.md.
+* No UI/AMD/CSS/production engine/permission/privacy changes. No mandatory database schema migration or new scheduled task is introduced.
+* Reverting code after an installed database version advance is not a supported Moodle downgrade. Restore a complete matched site/database backup if a deployed upgrade must be undone. The handoff ROLLBACK.sh restores a separate local source copy only.
+
 === 1.4.1 ===
 * Benchmark: Enhanced metadata schema to v2 with JSON sidecar export, verified warm-up iterations (--warmups), and single-process run offset (--run-offset).
 * Benchmark: Alternating mode execution order to mitigate systematic cache ordering bias in paired benchmarking.

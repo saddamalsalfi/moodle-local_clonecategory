@@ -8,7 +8,7 @@ on:
       tag:
         description: 'Release tag to publish'
         required: false
-        default: 'v1.3.1'
+        default: 'v1.4.2'
 
 permissions:
   contents: read
@@ -22,7 +22,7 @@ jobs:
     uses: ./.github/workflows/ci.yml
 
   publish:
-    if: always() && !cancelled()
+    if: ${{ !cancelled() && needs.compatibility.result == 'success' }}
     needs: compatibility
     runs-on: ubuntu-24.04
     permissions:

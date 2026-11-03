@@ -1,0 +1,12 @@
+metric,paired_blocks,pairs_with_nonpositive_values,native_over_clone_geometric_ratio,exploratory_ratio_95_low,exploratory_ratio_95_high,mean_paired_difference_native_minus_clone,exploratory_difference_95_low,exploratory_difference_95_high,ratio_status,interval_status
+readiness_workflow_seconds,1,0,2.3859816863479,,,132.082522229,,,defined,not_estimable_from_one_or_zero_pairs
+copy_workflow_seconds,1,0,2.4681542819438,,,131.026908865,,,defined,not_estimable_from_one_or_zero_pairs
+cpu_user_seconds,1,0,1.43230781799,,,12.583967,,,defined,not_estimable_from_one_or_zero_pairs
+cpu_system_seconds,1,0,1.7104465231019,,,12.069138,,,defined,not_estimable_from_one_or_zero_pairs
+os_peak_rss_kib,1,0,1.0539510224691,,,8548,,,defined,not_estimable_from_one_or_zero_pairs
+php_peak_allocated_bytes,1,0,1.0211670848614,,,1347584,,,defined,not_estimable_from_one_or_zero_pairs
+db_queries_after_bootstrap,1,0,1.2982490300644,,,205252,,,defined,not_estimable_from_one_or_zero_pairs
+db_reads_after_bootstrap,1,0,1.3764279342791,,,196230,,,defined,not_estimable_from_one_or_zero_pairs
+db_writes_after_bootstrap,1,0,1.0540579406213,,,9022,,,defined,not_estimable_from_one_or_zero_pairs
+io_read_bytes_after_bootstrap,1,1,,,,86016,,,undefined_for_zero_or_negative_values_no_pairs_silently_dropped,not_estimable_from_one_or_zero_pairs
+io_write_bytes_after_bootstrap,1,0,2.1299757361138,,,211734528,,,defined,not_estimable_from_one_or_zero_pairs

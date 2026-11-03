@@ -1,0 +1,196 @@
+{
+    "utc": "2026-10-28T05:42:59+00:00",
+    "moodle_release": "5.3 (Build: 20261005)",
+    "moodle_version": "2026100500",
+    "php": "8.3.36",
+    "php_ini": {
+        "memory_limit": "3072M",
+        "max_execution_time": "0",
+        "opcache.enable_cli": "1"
+    },
+    "db_family": "mysql",
+    "db_server": {
+        "description": "11.8.9-MariaDB-log",
+        "version": "11.8.9"
+    },
+    "uname": "Linux in-mum2-web2217.main-hosting.eu 5.14.0-611.45.1.el9_7.x86_64 #1 SMP PREEMPT_DYNAMIC Wed Apr 1 05:56:53 EDT 2026 x86_64",
+    "load": [
+        11.75,
+        14.94,
+        15.97
+    ],
+    "plugin_installed_version": "2026102600",
+    "engine_hashes": {
+        "backup/util/helper/copy_helper.class.php": "4945a43cccb8f699aff512eb32a6af3038a5026530fcf8f26405fd5c18e0eb7e",
+        "lib/classes/task/asynchronous_copy_task.php": "af09ef1b7b0cd14d906c28e53d40602e7ecb231358d908ec87c6bbdf0cbf4d47",
+        "local/clonecategory/classes/manager.php": "0d3246e058342a53d0b8b7f36707da6100c98a5aa609a15a0217db66908cd4a4",
+        "local/clonecategory/classes/task/clone_category_task.php": "a1e7604cb99f0afae30880693debd993c4667f9cb7affc83df3278343f82b94b"
+    },
+    "benchmark_script_sha256": "bc600e5301d5342066bedb0bbb87096c6f75bb8d32d4f45b34229b5ad065a9cf",
+    "library_sha256": "700b7a40ac058751de8d58414c55d71ddf998bf0a85791e53a403469f1dd274c",
+    "categories": 553,
+    "courses_including_frontpage": 1738,
+    "queued_tasks": [
+        {
+            "id": "1",
+            "classname": "\\mod_qbank\\task\\transfer_question_categories",
+            "nextruntime": "1793060811",
+            "faildelay": "0",
+            "timestarted": null
+        },
+        {
+            "id": "2",
+            "classname": "\\tool_installaddon\\task\\post_install",
+            "nextruntime": "1793060817",
+            "faildelay": "0",
+            "timestarted": null
+        },
+        {
+            "id": "3",
+            "classname": "\\core\\task\\send_login_notifications",
+            "nextruntime": "1793060878",
+            "faildelay": "0",
+            "timestarted": null
+        },
+        {
+            "id": "4",
+            "classname": "\\core\\task\\send_login_notifications",
+            "nextruntime": "1793065007",
+            "faildelay": "0",
+            "timestarted": null
+        },
+        {
+            "id": "5",
+            "classname": "\\core\\task\\send_login_notifications",
+            "nextruntime": "1793136116",
+            "faildelay": "0",
+            "timestarted": null
+        },
+        {
+            "id": "7",
+            "classname": "\\core_course\\task\\regrade_final_grades",
+            "nextruntime": "1793150024",
+            "faildelay": "0",
+            "timestarted": null
+        },
+        {
+            "id": "8",
+            "classname": "\\core\\task\\refresh_mod_calendar_events_task",
+            "nextruntime": "1793150024",
+            "faildelay": "0",
+            "timestarted": null
+        },
+        {
+            "id": "17",
+            "classname": "\\core_course\\task\\regrade_final_grades",
+            "nextruntime": "1793150405",
+            "faildelay": "0",
+            "timestarted": null
+        },
+        {
+            "id": "18",
+            "classname": "\\core\\task\\refresh_mod_calendar_events_task",
+            "nextruntime": "1793150405",
+            "faildelay": "0",
+            "timestarted": null
+        },
+        {
+            "id": "19",
+            "classname": "\\core_course\\task\\regrade_final_grades",
+            "nextruntime": "1793150406",
+            "faildelay": "0",
+            "timestarted": null
+        },
+        {
+            "id": "20",
+            "classname": "\\core\\task\\refresh_mod_calendar_events_task",
+            "nextruntime": "1793150406",
+            "faildelay": "0",
+            "timestarted": null
+        },
+        {
+            "id": "21",
+            "classname": "\\core_course\\task\\regrade_final_grades",
+            "nextruntime": "1793150407",
+            "faildelay": "0",
+            "timestarted": null
+        },
+        {
+            "id": "22",
+            "classname": "\\core\\task\\refresh_mod_calendar_events_task",
+            "nextruntime": "1793150407",
+            "faildelay": "0",
+            "timestarted": null
+        },
+        {
+            "id": "23",
+            "classname": "\\core_course\\task\\regrade_final_grades",
+            "nextruntime": "1793150407",
+            "faildelay": "0",
+            "timestarted": null
+        },
+        {
+            "id": "24",
+            "classname": "\\core\\task\\refresh_mod_calendar_events_task",
+            "nextruntime": "1793150407",
+            "faildelay": "0",
+            "timestarted": null
+        },
+        {
+            "id": "25",
+            "classname": "\\core_course\\task\\regrade_final_grades",
+            "nextruntime": "1793150408",
+            "faildelay": "0",
+            "timestarted": null
+        },
+        {
+            "id": "26",
+            "classname": "\\core\\task\\refresh_mod_calendar_events_task",
+            "nextruntime": "1793150408",
+            "faildelay": "0",
+            "timestarted": null
+        },
+        {
+            "id": "27",
+            "classname": "\\core_course\\task\\regrade_final_grades",
+            "nextruntime": "1793150409",
+            "faildelay": "0",
+            "timestarted": null
+        },
+        {
+            "id": "28",
+            "classname": "\\core\\task\\refresh_mod_calendar_events_task",
+            "nextruntime": "1793150409",
+            "faildelay": "0",
+            "timestarted": null
+        },
+        {
+            "id": "29",
+            "classname": "\\core_course\\task\\regrade_final_grades",
+            "nextruntime": "1793150410",
+            "faildelay": "0",
+            "timestarted": null
+        },
+        {
+            "id": "30",
+            "classname": "\\core\\task\\refresh_mod_calendar_events_task",
+            "nextruntime": "1793150410",
+            "faildelay": "0",
+            "timestarted": null
+        },
+        {
+            "id": "31",
+            "classname": "\\core_course\\task\\regrade_final_grades",
+            "nextruntime": "1793150411",
+            "faildelay": "0",
+            "timestarted": null
+        },
+        {
+            "id": "32",
+            "classname": "\\core\\task\\refresh_mod_calendar_events_task",
+            "nextruntime": "1793150411",
+            "faildelay": "0",
+            "timestarted": null
+        }
+    ]
+}

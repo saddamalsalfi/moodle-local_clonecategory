@@ -147,5 +147,11 @@ function xmldb_local_clonecategory_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026102600, 'local', 'clonecategory');
     }
 
+    if ($oldversion < 2026102900) {
+        // Release 1.4.2 updates benchmark tooling and documentation only.
+        // Existing jobs, items, fingerprints and schema are intentionally unchanged.
+        upgrade_plugin_savepoint(true, 2026102900, 'local', 'clonecategory');
+    }
+
     return true;
 }

@@ -13,22 +13,37 @@
 
 Settings mode produces empty courses. Full-content mode excludes learner enrolments, grades and submissions. Native selects remain available if JavaScript is disabled. Phone and Arabic/RTL layouts use the same selection rules.
 
-For a settings-only preview job blocked after merely viewing a course, update to 1.4.1 (or 1.4.0+) and retry rollback of the same eligible job. The buffered-log correction preserves the original fingerprint; it cannot recreate a missing historical baseline.
+For a settings-only preview job blocked after merely viewing a course, update to 1.4.2 (the buffered-log fix originally shipped in 1.3.1) and retry rollback of the same eligible job. The buffered-log correction preserves the original fingerprint; it cannot recreate a missing historical baseline.
 
-## Scientific Benchmark Tool
+## Production-path benchmark CLI in 1.4.2
 
-To evaluate duplication performance and measure lock durations, throughput, and memory consumption across synthetic trees:
+The benchmark is an explicit CLI administration tool, separate from normal UI cloning. PHP 8.1+, `proc_open`, POSIX resource accounting and Linux `/proc` are required for the documented full metrics. Moodle's core copy helper, core ad-hoc runner and the installed plugin must provide the production APIs. The executed live evidence is Moodle 5.3 only; no new cross-version benchmark qualification is implied.
+
+Run from the Moodle root (omit `public/` on older layouts):
 
 ```bash
-php local/clonecategory/cli/run_scientific_benchmark.php --tier=1 --runs=20 --pipeline=optimized
+php public/local/clonecategory/cli/run_scientific_benchmark.php --help
+php public/local/clonecategory/cli/run_scientific_benchmark.php --source-category=2
+php public/local/clonecategory/cli/run_scientific_benchmark.php --source-category=2 --execute --runs=1 --warmups=0
+php public/local/clonecategory/cli/run_scientific_benchmark.php --source-category=2 --execute --runs=6 --warmups=1
 ```
 
-Options include:
-- `-t, --tier=1..5`: Benchmark complexity presets (Tier 1: 5 courses up to Tier 5: 100 courses).
-- `-r, --runs=N`: Number of repetitions per mode (default: 20).
-- `-m, --mode=both|ahtd|baseline`: Modes to evaluate (default: both).
-- `-p, --pipeline=standard|optimized`: Standard identical isolation or full optimized AHTD streaming pipeline.
-- `-o, --output=filename.csv`: Output CSV file (default: scientific_benchmark.csv).
-- `--warmups=N`: Unrecorded, verified warm-up iterations (default: 0).
-- `--run-offset=N`: Logical run offset for single-process repetition loops (default: 0).
-- `--metadata=filename.json`: JSON metadata output path (default: `<output>.metadata.json`).
+`--execute` authorises the creation of actual hidden copies. The default command only writes a private plan and inventory. At 432 source courses, six measured pairs plus one warmup pair produce **6,048 temporary course copies**, across 14 trials. The schedule and intended workload are printed before copying.
+
+| Option | Meaning |
+| --- | --- |
+| `--source-category=ID` | Existing source root and all descendants; required for a site experiment. |
+| `--execute` | Execute actual creation/copy/verification, otherwise plan only. |
+| `--runs=6` | Measured paired blocks, 1 to 1000; not course count. |
+| `--warmups=1` | Warmup paired blocks, 0 to 100; raw evidence is retained. |
+| `--seed=20261028` | Reproducible balanced ordering seed, up to 2147483647. |
+| `--timeout=7200` | Per-phase timeout in seconds, 10 to 86400. |
+| `--output-dir=/private/new/path` | New, nonempty-output reuse is rejected; outside served code. |
+| `--retain` | Retain verified destinations instead of default guarded core cleanup. |
+| `--execute --cleanup-run=/experiment/runs/RUN` | Guarded cleanup of a previously verified owned run. |
+
+Internal `--phase`, `--experiment-dir` and `--run` options are worker implementation details, not a supported shortcut for resuming failed work. A failure stops further scheduled trials and preserves its evidence; inspect it before any recovery. No general cron sweep or unrelated task execution is performed. Keep the source stable and prevent other workers from claiming the experiment's queued tasks during measurement.
+
+Readiness includes preparation, production copying and the owned grade/calendar tasks. Verification and cleanup have separate metrics. Both methods use one fresh copy-worker process per trial; core course tasks are sequential, not artificially parallel. Default cleanup is shared Moodle core deletion guarded by ownership and final content fingerprints; it is **not** a comparison of the plugin's rollback feature.
+
+See [BENCHMARK.md](BENCHMARK.md) for units, eligibility, supported content checks, raw-file mapping and statistical limitations. The old `--tier`, `--mode=baseline|ahtd`, `--pipeline`, `--output`, `--metadata` and `--run-offset` flags are removed, not aliases. Store real outputs outside the plugin tree. Unchanged legacy CSV is historical only.

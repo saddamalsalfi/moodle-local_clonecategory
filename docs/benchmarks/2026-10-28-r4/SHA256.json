@@ -1,0 +1,13 @@
+{
+  "runs.csv": "1888a56a3ce795cbe8254dd64f107e705646351998103893ded67c7b52aea8d3",
+  "phases.csv": "7199846f12289ff4596efa78350e5236ece0a3f359dcfc9c839df76cd7f4bd6c",
+  "summary.csv": "aebcdef82ba44548f490d6273a30fab01935ad87c4cc7833e9f59931dcc85e8f",
+  "paired_comparisons.csv": "38b463a1f41f857d353dfad6ddf8c9277743f2cdc41c337d60bde51440d169df",
+  "checks.csv": "4aa4033ecbbf80b39d9ac4b59702c15217401d13c9be421ad92ef82a0ffa9057",
+  "protocol.json": "f76b5b40099f366240f2d81e2f9004474b435256d5e8b82499775b1a6bfc29f1",
+  "completion.json": "f91d70bddae1859f45ec86e0889123041d0030e6237367f71aea35f5d7c0a650",
+  "environment_before.json": "c401840b1dc972b74a6dac3f0e0fa2d23dc91eb6187c877906bbadf506e23d49",
+  "environment_after.json": "54fb54d66c70e2e46016283d975611e315a367e77f20e8fc6e8891e2c67f89d1",
+  "native_verification.json": "3fc0d052831d57f17ac9c4b103f44631f8fcaf5cff76bb461ed38e231254c4f9",
+  "clonecategory_verification.json": "cac0001024c208a7c01e43c00fd9ed270342a52972e9ed2556060577813b89d1"
+}
