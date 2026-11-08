@@ -1,12 +1,14 @@
 # Clone Category (`local_clonecategory`)
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23904374.svg)](https://doi.org/10.5281/zenodo.23904374) [![Moodle Plugin](https://img.shields.io/badge/Moodle-Plugin%20Directory-orange?logo=moodle)](https://marketplace.moodle.com/plugins/local_clonecategory)
+
 Clone Moodle category hierarchies using Moodle's background task, course creation and backup/restore APIs.
 
 ## Version 1.4.2
 
 Maintenance release integrating the production-path R4 benchmark, explicit evidence limits, regression tests and upgrade metadata. The production cloning engine and user interface are unchanged. See [release notes](RELEASE_NOTES.md), [change history](CHANGELOG.md) and [validation evidence](QA.md).
 
-The installable archive is `local_clonecategory-1.4.2.zip` with one `clonecategory/` root. This local update does not publish a GitHub tag, Marketplace release or Zenodo deposit. Source archives must be renamed to the correct plugin folder before manual installation.
+The installable archive is `local_clonecategory-1.4.2.zip` with one `clonecategory/` root. Source archives must be renamed to the correct plugin folder before manual installation.
 
 ### Rollback correction
 

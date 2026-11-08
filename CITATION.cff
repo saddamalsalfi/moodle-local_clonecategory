@@ -9,8 +9,7 @@ authors:
     orcid: "https://orcid.org/0000-0002-4006-0193"
     affiliation: "Queen Arwa University"
 version: 1.4.2
-# Existing project citation identifier retained; this update does not assert a new 1.4.2 deposit.
-doi: 10.5281/zenodo.23578360
+doi: 10.5281/zenodo.23904374
 date-released: 2026-10-29
 url: "https://github.com/saddamalsalfi/moodle-local_clonecategory"
 repository-code: "https://github.com/saddamalsalfi/moodle-local_clonecategory"

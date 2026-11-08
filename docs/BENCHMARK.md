@@ -63,7 +63,7 @@ Unsupported activities, question banks, nonempty forum posts, groups, blocks or 
 
 The independent sample is **one paired batch**, not 432 independent method replications. No significance or general superiority claim is made; n<2 confidence intervals are explicitly unavailable. Ratios are undefined if paired observations contain zero/negative values; those pairs remain in difference/count reporting rather than being silently dropped. The supported exploratory bootstrap uses 10,000 paired resamples only when sufficient blocks exist; it does not remove shared-host confounding.
 
-Native ran first, no cache flush was performed, host load changed, and optional production backup settings differ. No transaction/lock wait/hold timings, DB-server CPU/physical IO, network volume, energy or cross-host inference were measured. No empirical sample proves O(1) runtime or bounded memory at all scales. No publication, certification, new DOI deposit or badge is asserted.
+Native ran first, no cache flush was performed, host load changed, and optional production backup settings differ. No transaction/lock wait/hold timings, DB-server CPU/physical IO, network volume, energy or cross-host inference were measured. No empirical sample proves O(1) runtime or bounded memory at all scales.
 
 ## Reproduction and automation migration
 

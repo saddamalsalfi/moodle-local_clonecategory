@@ -33,7 +33,7 @@ One independent pair, native first, no cache flush, changing shared-host load an
 
 ## Not newly executed by this local update
 
-No full Moodle PHPUnit/database migration, multi-version/PHP/database CI matrix, browser pass, concurrent-user rollback study or fresh full-scale 1.4.2 live-site run is represented as completed here. The metadata probe is an isolated stub-based source regression, not a database restore/upgrade integration test. Existing production code and schema are unchanged, but release CI and site-specific integration still need their normal execution before external publication. No Git commit, tag, push, GitHub/Marketplace release or new Zenodo deposit is created by editing these files.
+No full Moodle PHPUnit/database migration, multi-version/PHP/database CI matrix, browser pass, concurrent-user rollback study or fresh full-scale 1.4.2 live-site run is represented as completed here. The metadata probe is an isolated stub-based source regression, not a database restore/upgrade integration test. Existing production code and schema are unchanged, but release CI and site-specific integration still need their normal execution before external publication.
 
 ## Historical integration evidence inherited from earlier releases
 

@@ -32,7 +32,7 @@ Stable release; Moodle plugin build `2026102600`.
 - **Benchmark Metadata Schema v2**: Added structured JSON sidecar metadata (`--metadata=path.json`) recording environment fingerprints, Moodle/PHP/DB versions, plugin commit metadata, command invocation, and exact execution parameters.
 - **Warm-Up Iterations**: Introduced `--warmups=N` parameter to execute verified, unrecorded warm-up runs prior to active data collection, preventing cold-start JIT/caching skew.
 - **Single-Process Run Offset**: Added `--run-offset=N` to support fresh process-per-run execution loops in automated benchmarking scripts.
-- **Citation Metadata**: Added `CITATION.cff` (Citation File Format 1.2.0) with Zenodo DOI (`10.5281/zenodo.23578360`) and ORCID identifier for academic citation and reproducibility.
+- **Citation Metadata**: Added `CITATION.cff` (Citation File Format 1.2.0) with Zenodo DOI (`10.5281/zenodo.23904374`) and ORCID identifier for academic citation and reproducibility.
 
 ### Changed
 

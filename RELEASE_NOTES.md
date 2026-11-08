@@ -27,7 +27,7 @@ This is not a universal performance claim, a significance result, a lock-duratio
 3. Run the normal Moodle upgrade and purge caches. Savepoint `2026102900` changes metadata only.
 4. Continue normal cron for production jobs. Benchmarking is explicit CLI work and is not scheduled by installing this update.
 
-The local install archive is `local_clonecategory-1.4.2.zip`; no GitHub/Marketplace publication or new Zenodo deposit is implied. Version metadata is not a successful CI run. New source hashes differ from the original R4 executable because of packaging and coding-style integration; the preserved R4 evidence identifies its exact tested code. Do not pool experiments across source revisions.
+The local install archive is `local_clonecategory-1.4.2.zip`. Version metadata is not a successful CI run. New source hashes differ from the original R4 executable because of packaging and coding-style integration; the preserved R4 evidence identifies its exact tested code. Do not pool experiments across source revisions.
 
 ## Verification
 
